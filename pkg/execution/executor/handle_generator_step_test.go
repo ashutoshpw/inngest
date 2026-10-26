@@ -228,6 +228,15 @@ func TestDiscoveryEnqueueFailureAlwaysRetries(t *testing.T) {
 			},
 		},
 		{
+			name: "step failed w/ no retry and retry at",
+			resp: state.DriverResponse{
+				StatusCode: 206,
+				NoRetry:    true,
+				RetryAt:    &retryAt,
+				Generator:  []*state.GeneratorOpcode{{Op: enums.OpcodeStepFailed, ID: "step", Error: &stepErr}},
+			},
+		},
+		{
 			name: "step failed w/ no retry",
 			resp: state.DriverResponse{
 				StatusCode: 206,

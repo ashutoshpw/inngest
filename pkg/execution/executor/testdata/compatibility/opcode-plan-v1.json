@@ -1337,6 +1337,36 @@
       ],
       "expectedKey": "53fda8ff0609031c",
       "differentKeyFrom": "delimiter-boundary-left"
+    },
+    {
+      "name": "nul-in-left-id",
+      "runId": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "stepIds": [
+        "a\u0000b",
+        "c"
+      ],
+      "expectedKey": "4603547f49823ceb"
+    },
+    {
+      "name": "nul-in-right-id",
+      "runId": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "stepIds": [
+        "a",
+        "b\u0000c"
+      ],
+      "expectedKey": "4603547f49823ceb",
+      "sameKeyAs": "nul-in-left-id"
+    },
+    {
+      "name": "nul-delimiter-equivalent-three-ids",
+      "runId": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "stepIds": [
+        "a",
+        "b",
+        "c"
+      ],
+      "expectedKey": "4603547f49823ceb",
+      "sameKeyAs": "nul-in-left-id"
     }
   ]
 }
