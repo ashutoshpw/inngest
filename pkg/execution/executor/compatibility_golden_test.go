@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -45,18 +46,21 @@ type opcodeFixtureOpcode struct {
 }
 
 type opcodePlanCase struct {
-	Name                   string                `json:"name"`
-	RunID                  string                `json:"runId"`
-	StoredRequestVersion   int                   `json:"storedRequestVersion"`
-	ResponseRequestVersion int                   `json:"responseRequestVersion"`
-	ForceStepPlan          bool                  `json:"forceStepPlan"`
-	HandlerCase            bool                  `json:"handlerCase"`
-	FailSavePending        bool                  `json:"failSavePending"`
-	Input                  []opcodeFixtureOpcode `json:"input"`
-	Expected               opcodePlanExpected    `json:"expected"`
+	Name                   string                   `json:"name"`
+	RunID                  string                   `json:"runId"`
+	StoredRequestVersion   int                      `json:"storedRequestVersion"`
+	ResponseRequestVersion int                      `json:"responseRequestVersion"`
+	ForceStepPlan          bool                     `json:"forceStepPlan"`
+	HandlerCase            bool                     `json:"handlerCase"`
+	FailSavePending        bool                     `json:"failSavePending"`
+	Input                  []*state.GeneratorOpcode `json:"input"`
+	Expected               opcodePlanExpected       `json:"expected"`
 }
 
 type opcodePlanExpected struct {
+	PriorityIndices []int                      `json:"priorityIndices"`
+	OtherIndices    []int                      `json:"otherIndices"`
+	NonLazyIndices  []int                      `json:"nonLazyIndices"`
 	Priority        []opcodeFixtureOpcode      `json:"priority"`
 	Other           []opcodeFixtureOpcode      `json:"other"`
 	NonLazyIDs      []string                   `json:"nonLazyIds"`
@@ -98,14 +102,6 @@ func loadOpcodePlanFixture(t *testing.T) opcodePlanFixture {
 	return fixture
 }
 
-func generatorOpcodes(input []opcodeFixtureOpcode) []*state.GeneratorOpcode {
-	result := make([]*state.GeneratorOpcode, 0, len(input))
-	for _, op := range input {
-		result = append(result, &state.GeneratorOpcode{Op: op.Op, ID: op.ID})
-	}
-	return result
-}
-
 func fixtureOpcodes(input []*state.GeneratorOpcode) []opcodeFixtureOpcode {
 	result := make([]opcodeFixtureOpcode, 0, len(input))
 	for _, op := range input {
@@ -124,8 +120,28 @@ func TestOpcodePlanCompatibilityFixture(t *testing.T) {
 			require.False(t, exists, "fixture case names must be unique")
 			seen[tc.Name] = struct{}{}
 
-			ops := generatorOpcodes(tc.Input)
+			ops := tc.Input
+			originalIndices := make(map[*state.GeneratorOpcode]int, len(ops))
+			for index, op := range ops {
+				require.NotNil(t, op, "this corpus covers non-null opcodes only")
+				originalIndices[op] = index
+			}
 			groups := opGroups(ops)
+			// Map the real owner's pointers, never IDs: duplicate IDs and even
+			// identical op/id pairs must retain their original payload and position.
+			groupIndices := make([][]int, 0, 2)
+			for _, group := range groups.All() {
+				indices := make([]int, 0, len(group.Opcodes))
+				for _, op := range group.Opcodes {
+					index, exists := originalIndices[op]
+					require.True(t, exists, "group must retain the original opcode")
+					indices = append(indices, index)
+				}
+				groupIndices = append(groupIndices, indices)
+			}
+			require.NotNil(t, tc.Expected.PriorityIndices)
+			require.NotNil(t, tc.Expected.OtherIndices)
+			require.Equal(t, [][]int{tc.Expected.PriorityIndices, tc.Expected.OtherIndices}, groupIndices)
 			require.Equal(t, tc.Expected.Priority, fixtureOpcodes(groups.PriorityGroup.Opcodes))
 			require.Equal(t, tc.Expected.Other, fixtureOpcodes(groups.OtherGroup.Opcodes))
 			// The arrays pin classification and stable filtering order only. Each
@@ -135,6 +151,28 @@ func TestOpcodePlanCompatibilityFixture(t *testing.T) {
 
 			nonLazyIDs := groups.NonLazyIDs()
 			require.Equal(t, tc.Expected.NonLazyIDs, nonLazyIDs)
+			// NonLazyIDs exposes strings rather than pointers. Independently map
+			// the literal index answer to originals without copying its lazy predicate.
+			require.NotNil(t, tc.Expected.NonLazyIndices)
+			indexedIDs := make([]string, 0, len(tc.Expected.NonLazyIndices))
+			indexLabels := make([]string, 0, len(tc.Expected.NonLazyIndices))
+			for _, index := range tc.Expected.NonLazyIndices {
+				require.GreaterOrEqual(t, index, 0)
+				require.Less(t, index, len(ops))
+				indexedIDs = append(indexedIDs, ops[index].ID)
+				indexLabels = append(indexLabels, strconv.Itoa(index))
+			}
+			require.Equal(t, tc.Expected.NonLazyIDs, indexedIDs)
+			// A second projection through the real owner disambiguates non-lazy
+			// positions even when original IDs repeat or are empty. Copies leave
+			// the original opcode objects intact; no classification is copied here.
+			positionOps := make([]*state.GeneratorOpcode, 0, len(ops))
+			for index, op := range ops {
+				copied := *op
+				copied.ID = strconv.Itoa(index)
+				positionOps = append(positionOps, &copied)
+			}
+			require.Equal(t, indexLabels, opGroups(positionOps).NonLazyIDs())
 			require.Equal(t, len(tc.Expected.NonLazyIDs), nonLazyOpCount(ops))
 			require.Equal(t, tc.Expected.HistoryGroup, nonLazyOpCount(ops) > 1)
 
@@ -344,7 +382,7 @@ func TestOpcodePlanCompatibilityAtResponseHandler(t *testing.T) {
 					ForceStepPlan:  tc.ForceStepPlan,
 				}),
 			}
-			ops := generatorOpcodes(tc.Input)
+			ops := tc.Input
 			resp := &state.DriverResponse{Generator: ops, RequestVersion: tc.ResponseRequestVersion}
 			events := &opcodePlanEvents{}
 			service := &opcodePlanRecordingRunService{

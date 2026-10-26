@@ -62,6 +62,17 @@ Independent implementation evidence:
 
 ## Bridge validation and later parity gates
 
+The parent-adopted 2026-10-26 [sequencing amendment](opcode-bridge-contract.md)
+allows only the bounded pure read-only Linux opcode spike after its exact-slice
+Go oracle, recorded microbenchmarks, and bounded DB/Valkey/lifecycle evidence
+are accepted. Broad Phase 1 remains partial. The broader corpus and matched
+performance work below remains mandatory before the relevant later migration
+or rollout; it is not all a prerequisite for that initial bounded spike.
+Implemented SDK behavior and the unconfirmed minimum-version policy are
+unchanged. Independent Luna review and the separate [Go service evidence](go-service-baseline.md)
+are accepted; the bounded entry gate is satisfied. Phase 2 is not completed or
+selected, and no Rust workspace exists. This is not arm64 validation evidence.
+
 1. Start the bridge spike with the agreed Linux amd64/arm64 targets and preserve
    currently implemented SDK/request-version behavior. Owners must still confirm
    supported SDK languages/version ranges (including minimum versions), the full

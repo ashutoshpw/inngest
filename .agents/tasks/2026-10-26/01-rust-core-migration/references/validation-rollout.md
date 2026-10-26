@@ -9,13 +9,25 @@
 
 ## Baseline and parity work
 
+**Sequencing amendment adopted 2026-10-26:** broad Phase 1 stays partial. The
+bounded Linux amd64/arm64 pure read-only opcode spike may begin after acceptance
+of its exact-slice Go oracle, recorded Go microbenchmarks, and bounded existing
+DB/Valkey/lifecycle evidence. The parent accepted independent Luna oracle
+review with no blockers and the separate [Go service evidence](go-service-baseline.md);
+the bounded entry gate is satisfied. Phase 2 is not completed or selected,
+and no Rust workspace exists. See the
+[bounded bridge contract](opcode-bridge-contract.md). Each later Rust migration
+requires the relevant additional-owner Go baseline first. The full corpus,
+recovery, matched-performance, deferred-platform, cloud, rollout, and retirement
+gates below are unchanged. Minimum SDK version policy remains unconfirmed.
+
 Phase 1 remains partial. The SDK request wire and replay-shaped input corpus is accepted after independent Luna review found no blockers; malformed-case and reset-overhead-label findings are fixed. The opcode-plan and generator-parser corpora are accepted after a fresh Sol-high review found no blockers and the first review's three P2 findings were fixed. Focused Go/race tests and mutation evidence are recorded. This does not complete SDK-response replay or the broader baseline. See [task status](../status.md), the [SDK request corpus](../../../../../pkg/execution/driver/testdata/sdk-request-v1/README.md), and the [opcode baseline](opcode-plan-baseline.md).
 
 Complete the remaining corpus with Go outputs and ordered effects for representative schedule, event match, SDK responses/replay, retries, pauses/resumes, cancellation, generator discovery, parallel fan-out, defers, sleeps/waits, and finalization. Include priority wait plus lazy DeferAdd/DeferAbort combinations, including defer before completion; verify lazy ops do not inflate pending-step counts. Compare Rust output byte-for-byte where the wire format is contractual and structurally where ordering or dynamic JSON is contractual. Add injected failures before and after state writes, queue enqueue, output persistence, claims, child scheduling, and finalization. Include duplicate deliveries and shutdown/restart recovery.
 
 After the bridge spike and pure opcode slice, stack implementation layers in this order: **CEL evaluation plus SQLite/Postgres filter parity**, then **persistence and recovery** (state adapters, queue behavior, atomic claims, leases, and restart/failure recovery). Keep Go as the sole writer and migration owner until each relevant parity gate passes; see the [runtime map](runtime-map.md).
 
-Benchmark the same workloads with the Go baseline, Rust kernel, and selected bridge. The plan proposes initial gates of zero unexplained fixture mismatches, p95 decision latency at most 1.10× Go, throughput at least 0.90× Go, and peak memory at most 1.20× Go. Measure first, then calibrate or explicitly revise those gates before implementation; this plan contains no benchmark results.
+Benchmark the same workloads with the Go baseline, Rust kernel, and selected bridge. The plan proposes initial gates of zero unexplained fixture mismatches, p95 decision latency at most 1.10× Go, throughput at least 0.90× Go, and peak memory at most 1.20× Go. Measure during the spike, then calibrate or explicitly revise those gates before activation; existing Go microbenchmarks in the linked baselines do not establish matched bridge performance or these thresholds.
 
 ## Platform and service gates
 

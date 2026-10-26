@@ -8,6 +8,12 @@
 
 **Branch/base:** `rust-core/01-compatibility-baseline` at the source commit above
 
+The later [bounded bridge prerequisite](opcode-bridge-contract.md) extends the
+accepted 20-case corpus to 27 cases with additive literal original-index
+expectations. That increment is accepted after independent Luna review found no blockers; it does not
+change this source provenance or retroactively extend the accepted review and
+validation evidence below. Coalescing eligibility remains Go-owned.
+
 ## Scope
 
 This increment freezes two deterministic boundaries for later cross-language
