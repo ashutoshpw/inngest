@@ -1,0 +1,19 @@
+seed,fixed_group_order,lane,workload,samples,ready_p50_ns,ready_p95_ns,ready_p99_ns,first_request_p50_ns,first_request_p95_ns,first_request_p99_ns,ordering_interpretation
+75501,1,process_decoded,small1,500,511470,616777,758343,26099,39714,56326,ordered observation; startup groups are not randomized
+75501,2,process_decoded,mixed8,500,512181,651172,769413,26940,40576,60303,ordered observation; startup groups are not randomized
+75501,3,process_decoded,large1000,500,511670,661371,831800,72036,110608,158737,ordered observation; startup groups are not randomized
+75501,4,process_full_driver_response_json,small1,500,505418,668624,1011087,36138,59381,76474,ordered observation; startup groups are not randomized
+75501,5,process_full_driver_response_json,mixed8,500,490219,615094,746530,53270,81373,108975,ordered observation; startup groups are not randomized
+75501,6,process_full_driver_response_json,large1000,500,642506,859022,1328602,2503105,3386082,10741142,ordered observation; startup groups are not randomized
+75502,1,process_decoded,small1,500,554200,689574,815790,29435,43241,48902,ordered observation; startup groups are not randomized
+75502,2,process_decoded,mixed8,500,546876,677951,851417,30307,41467,71123,ordered observation; startup groups are not randomized
+75502,3,process_decoded,large1000,500,517070,714701,950192,74831,121749,265078,ordered observation; startup groups are not randomized
+75502,4,process_full_driver_response_json,small1,500,551855,726383,915748,43211,60954,86252,ordered observation; startup groups are not randomized
+75502,5,process_full_driver_response_json,mixed8,500,538681,707767,846167,64140,96120,140534,ordered observation; startup groups are not randomized
+75502,6,process_full_driver_response_json,large1000,500,697929,969599,1205732,2552138,3687458,9088941,ordered observation; startup groups are not randomized
+75503,1,process_decoded,small1,500,495570,576631,761468,24787,36338,50265,ordered observation; startup groups are not randomized
+75503,2,process_decoded,mixed8,500,492584,602310,688131,25328,35687,46648,ordered observation; startup groups are not randomized
+75503,3,process_decoded,large1000,500,507242,648507,786705,71434,98986,126237,ordered observation; startup groups are not randomized
+75503,4,process_full_driver_response_json,small1,500,516229,645831,798788,37350,57758,91090,ordered observation; startup groups are not randomized
+75503,5,process_full_driver_response_json,mixed8,500,489989,606838,752982,52970,74059,115677,ordered observation; startup groups are not randomized
+75503,6,process_full_driver_response_json,large1000,500,643798,880762,935695,2682432,3895328,9465246,ordered observation; startup groups are not randomized
