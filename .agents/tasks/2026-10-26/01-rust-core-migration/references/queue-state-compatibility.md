@@ -149,7 +149,8 @@ a mutation probe that failed at the loaded-pointer assertion. No production
 code changed. Phase 1 remains partial; Rust fixture consumption and parity
 remain later work.
 
-A separate process-restart/recovery witness is under independent review in the
-different worktree on branch `t3/recovery-replay-witness`. It is not included in
-this layer. Queue/state recovery, broader lifecycle fault cases, and real
-Redis/Valkey behavior remain open baseline work.
+The separate accepted [recovery witness](recovery-baseline.md) on branch
+`t3/recovery-replay-witness` covers drained owner replacement against surviving
+SQLite/Valkey stores. It is not included in layer 3. Process crash, active-lease
+recovery, broader lifecycle fault cases, and broader Redis/Valkey behavior remain
+open baseline work.

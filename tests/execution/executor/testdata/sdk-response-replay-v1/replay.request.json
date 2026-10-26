@@ -1,0 +1,46 @@
+{
+  "ctx": {
+    "fn_id": "11111111-2222-3333-4444-555555555555",
+    "run_id": "01K8F08000AAAAAAAAAAAAAAAA",
+    "attempt": 0,
+    "max_attempts": 1,
+    "stack": {
+      "current": 0,
+      "stack": [
+        "checkpoint-output"
+      ]
+    },
+    "step_id": "step"
+  },
+  "request_version_header": "2",
+  "step_id_query": "step",
+  "event": {
+    "id": "source-event-v1",
+    "name": "fixture/recovery",
+    "ts": 1793016000000,
+    "data": {
+      "order": "order-1"
+    },
+    "user": {}
+  },
+  "events": [
+    {
+      "id": "source-event-v1",
+      "name": "fixture/recovery",
+      "ts": 1793016000000,
+      "data": {
+        "order": "order-1"
+      },
+      "user": {}
+    }
+  ],
+  "version": 2,
+  "steps": {
+    "checkpoint-output": {
+      "data": {
+        "receipt": "effect-1",
+        "ok": true
+      }
+    }
+  }
+}

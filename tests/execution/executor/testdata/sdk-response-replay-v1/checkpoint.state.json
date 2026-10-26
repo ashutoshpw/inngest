@@ -1,0 +1,18 @@
+{
+  "version": 2,
+  "steps": {
+    "checkpoint-output": {
+      "data": {
+        "receipt": "effect-1",
+        "ok": true
+      }
+    }
+  },
+  "stack": [
+    "checkpoint-output"
+  ],
+  "pending": [],
+  "event_ids": [
+    "01K8F08000BBBBBBBBBBBBBBBB"
+  ]
+}
