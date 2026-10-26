@@ -19,7 +19,19 @@ Redis and SQL remain external storage engines, accessed through Rust-owned state
 
 ## First bounded slice
 
-Start with pure SDK-opcode classification/grouping and step-plan intents, not schedule decisions or the broad executor interface. Use the response plus stable IDs to classify priority versus other opcodes, identify non-lazy step IDs, set history-group flags, and derive stable parallel-coalescing inputs. Go remains the only owner of pending-step writes, state/queue mutations, SDK calls, and opcode effects. Cover priority wait operations, lazy DeferAdd/DeferAbort operations, and mixed defer/completion ordering with fixtures. Shadow Rust decisions read-only against Go; do not let shadow evaluation apply writes or effects. The existing grouping seam and tests are in [`executor/util.go`](../../../../../pkg/execution/executor/util.go) and [`executor/util_test.go`](../../../../../pkg/execution/executor/util_test.go).
+Start with pure SDK-opcode grouping, non-lazy original indices, history flags,
+and plan capability. The [bounded bridge contract](opcode-bridge-contract.md)
+defines the proposed index representation and the explicitly amended entry
+gates while broad Phase 1 remains partial. Go retains complete original opcode
+objects and opaque IDs; the kernel only needs ordered opcode tags. Go indexes
+the originals rather than reconstructing opcodes from `op/id`. Request-version
+negotiation, metadata writes, coalescing eligibility/hash/discovery IDs,
+limits/errors, timestamps/history IDs, pending-step writes, state/queue
+mutations, SDK calls, and effects remain Go-owned. Broader step-plan intents
+need a separately baselined layer. Shadow Rust decisions read-only against Go;
+do not let shadow evaluation apply writes or effects. The existing grouping
+seam and tests are in [`executor/util.go`](../../../../../pkg/execution/executor/util.go)
+and [`executor/util_test.go`](../../../../../pkg/execution/executor/util_test.go).
 
 When schedule decisions migrate later, preserve mutable preconditions as atomic check-and-mutate or reservation operations. Read observations may inform a proposal but never authorize a reservation. If an atomic precondition fails, re-evaluate with the same stable IDs and the defined retry path; do not apply stale observations as a decision.
 

@@ -126,10 +126,22 @@ and revalidated with focused and race tests plus a targeted mutation probe. It
 pins three queue-item JSON cases through the Redis enqueue/store/load owner path
 and a bounded initial run-state New/store/Load sample. The fixture contract,
 audit rationale, validation, and microbenchmark are recorded in the
-[queue/state compatibility baseline](queue-state-compatibility.md). A separate
-process-restart/recovery witness is under independent review in worktree
-`t3/recovery-replay-witness`; it is not included in this layer. This layer does
-not cover real Redis/Valkey behavior or Rust parity.
+[queue/state compatibility baseline](queue-state-compatibility.md). Accepted
+layer 4 separately adds a drained-owner replacement recovery witness on surviving
+stores, not an OS process crash or active-lease recovery. See the
+[recovery baseline](recovery-baseline.md). These increments do not establish real
+Redis/Valkey durability or Rust parity.
+
+## Amended bounded entry gate
+
+The parent adopted a sequencing amendment on 2026-10-26: Phase 1 remains
+partial, but a Linux amd64/arm64 pure read-only opcode spike may start after
+acceptance of the exact-slice Go oracle, recorded Go microbenchmarks, and bounded
+existing DB/Valkey/lifecycle evidence. The [bounded bridge contract](opcode-bridge-contract.md)
+records the narrowed index boundary and accepted oracle review; the accepted
+[Go service baseline](go-service-baseline.md) closes the bounded entry gate only.
+Phase 2 is not completed or selected, and no Rust workspace exists. Relevant additional-owner baselines must precede each
+later Rust migration. Broad rollout and retirement gates remain unchanged.
 
 ## Remaining phase 1 Go baseline
 

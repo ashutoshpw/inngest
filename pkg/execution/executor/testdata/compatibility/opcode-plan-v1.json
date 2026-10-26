@@ -64,7 +64,21 @@
           "complete-1"
         ],
         "historyGroup": true,
-        "hasPlanOp": true
+        "hasPlanOp": true,
+        "priorityIndices": [
+          1,
+          3
+        ],
+        "otherIndices": [
+          0,
+          2
+        ],
+        "nonLazyIndices": [
+          1,
+          3,
+          0,
+          2
+        ]
       }
     },
     {
@@ -108,7 +122,17 @@
           "host-step"
         ],
         "historyGroup": false,
-        "hasPlanOp": false
+        "hasPlanOp": false,
+        "priorityIndices": [
+          1,
+          2
+        ],
+        "otherIndices": [
+          0
+        ],
+        "nonLazyIndices": [
+          0
+        ]
       }
     },
     {
@@ -141,7 +165,13 @@
         "other": [],
         "nonLazyIds": [],
         "historyGroup": false,
-        "hasPlanOp": false
+        "hasPlanOp": false,
+        "priorityIndices": [
+          0,
+          1
+        ],
+        "otherIndices": [],
+        "nonLazyIndices": []
       }
     },
     {
@@ -177,7 +207,16 @@
           "complete-1"
         ],
         "historyGroup": false,
-        "hasPlanOp": false
+        "hasPlanOp": false,
+        "priorityIndices": [
+          1
+        ],
+        "otherIndices": [
+          0
+        ],
+        "nonLazyIndices": [
+          0
+        ]
       }
     },
     {
@@ -231,7 +270,20 @@
           "ai-1"
         ],
         "historyGroup": true,
-        "hasPlanOp": true
+        "hasPlanOp": true,
+        "priorityIndices": [],
+        "otherIndices": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "nonLazyIndices": [
+          0,
+          1,
+          2,
+          3
+        ]
       }
     },
     {
@@ -258,7 +310,14 @@
           "wait-1"
         ],
         "historyGroup": false,
-        "hasPlanOp": true
+        "hasPlanOp": true,
+        "priorityIndices": [
+          0
+        ],
+        "otherIndices": [],
+        "nonLazyIndices": [
+          0
+        ]
       }
     },
     {
@@ -285,7 +344,14 @@
           "planned-1"
         ],
         "historyGroup": false,
-        "hasPlanOp": true
+        "hasPlanOp": true,
+        "priorityIndices": [],
+        "otherIndices": [
+          0
+        ],
+        "nonLazyIndices": [
+          0
+        ]
       }
     },
     {
@@ -312,7 +378,14 @@
           "sleep-1"
         ],
         "historyGroup": false,
-        "hasPlanOp": true
+        "hasPlanOp": true,
+        "priorityIndices": [],
+        "otherIndices": [
+          0
+        ],
+        "nonLazyIndices": [
+          0
+        ]
       }
     },
     {
@@ -339,7 +412,14 @@
           "invoke-1"
         ],
         "historyGroup": false,
-        "hasPlanOp": true
+        "hasPlanOp": true,
+        "priorityIndices": [],
+        "otherIndices": [
+          0
+        ],
+        "nonLazyIndices": [
+          0
+        ]
       }
     },
     {
@@ -366,7 +446,14 @@
           "gateway-1"
         ],
         "historyGroup": false,
-        "hasPlanOp": true
+        "hasPlanOp": true,
+        "priorityIndices": [],
+        "otherIndices": [
+          0
+        ],
+        "nonLazyIndices": [
+          0
+        ]
       }
     },
     {
@@ -393,7 +480,14 @@
           "ai-gateway-1"
         ],
         "historyGroup": false,
-        "hasPlanOp": true
+        "hasPlanOp": true,
+        "priorityIndices": [],
+        "otherIndices": [
+          0
+        ],
+        "nonLazyIndices": [
+          0
+        ]
       }
     },
     {
@@ -420,7 +514,14 @@
           "signal-1"
         ],
         "historyGroup": false,
-        "hasPlanOp": true
+        "hasPlanOp": true,
+        "priorityIndices": [],
+        "otherIndices": [
+          0
+        ],
+        "nonLazyIndices": [
+          0
+        ]
       }
     },
     {
@@ -469,7 +570,16 @@
             "forceStepPlan": false
           }
         ],
-        "handlerEnqueues": 2
+        "handlerEnqueues": 2,
+        "priorityIndices": [],
+        "otherIndices": [
+          0,
+          1
+        ],
+        "nonLazyIndices": [
+          0,
+          1
+        ]
       },
       "handlerCase": true
     },
@@ -486,11 +596,25 @@
         },
         {
           "op": "StepRun",
-          "id": "dup"
+          "id": "dup",
+          "name": "first duplicate",
+          "data": {
+            "value": 1
+          },
+          "opts": {
+            "opaque": "first"
+          }
         },
         {
           "op": "StepRun",
-          "id": "dup"
+          "id": "dup",
+          "name": "second duplicate",
+          "data": {
+            "value": 2
+          },
+          "opts": {
+            "opaque": "second"
+          }
         },
         {
           "op": "DeferAdd",
@@ -524,7 +648,20 @@
           "dup"
         ],
         "historyGroup": true,
-        "hasPlanOp": true
+        "hasPlanOp": true,
+        "priorityIndices": [
+          0,
+          3
+        ],
+        "otherIndices": [
+          1,
+          2
+        ],
+        "nonLazyIndices": [
+          0,
+          1,
+          2
+        ]
       }
     },
     {
@@ -570,7 +707,16 @@
             "forceStepPlan": true
           }
         ],
-        "handlerEnqueues": 2
+        "handlerEnqueues": 2,
+        "priorityIndices": [],
+        "otherIndices": [
+          0,
+          1
+        ],
+        "nonLazyIndices": [
+          0,
+          1
+        ]
       }
     },
     {
@@ -615,7 +761,16 @@
             "forceStepPlan": true
           }
         ],
-        "handlerEnqueues": 2
+        "handlerEnqueues": 2,
+        "priorityIndices": [],
+        "otherIndices": [
+          0,
+          1
+        ],
+        "nonLazyIndices": [
+          0,
+          1
+        ]
       }
     },
     {
@@ -656,7 +811,16 @@
         "shouldCoalesce": true,
         "coalesceKey": "1af438d9048ad7aa",
         "metadataUpdates": [],
-        "handlerEnqueues": 2
+        "handlerEnqueues": 2,
+        "priorityIndices": [],
+        "otherIndices": [
+          0,
+          1
+        ],
+        "nonLazyIndices": [
+          0,
+          1
+        ]
       }
     },
     {
@@ -698,7 +862,16 @@
         "coalesceKey": "",
         "metadataUpdates": [],
         "handlerEnqueues": 0,
-        "handlerError": true
+        "handlerError": true,
+        "priorityIndices": [],
+        "otherIndices": [
+          0,
+          1
+        ],
+        "nonLazyIndices": [
+          0,
+          1
+        ]
       }
     },
     {
@@ -739,7 +912,16 @@
         "shouldCoalesce": false,
         "coalesceKey": "",
         "metadataUpdates": [],
-        "handlerEnqueues": 1
+        "handlerEnqueues": 1,
+        "priorityIndices": [
+          1
+        ],
+        "otherIndices": [
+          0
+        ],
+        "nonLazyIndices": [
+          0
+        ]
       }
     },
     {
@@ -781,8 +963,317 @@
         "shouldCoalesce": true,
         "coalesceKey": "1af438d9048ad7aa",
         "metadataUpdates": [],
-        "handlerEnqueues": 0
+        "handlerEnqueues": 0,
+        "priorityIndices": [],
+        "otherIndices": [
+          0,
+          1
+        ],
+        "nonLazyIndices": [
+          0,
+          1
+        ]
       }
+    },
+    {
+      "name": "ordinary-none-is-nonlazy-nonpriority",
+      "input": [
+        {
+          "op": "None",
+          "id": ""
+        }
+      ],
+      "expected": {
+        "priority": [],
+        "other": [
+          {
+            "op": "None",
+            "id": ""
+          }
+        ],
+        "nonLazyIds": [
+          ""
+        ],
+        "historyGroup": false,
+        "hasPlanOp": false,
+        "priorityIndices": [],
+        "otherIndices": [
+          0
+        ],
+        "nonLazyIndices": [
+          0
+        ]
+      },
+      "runId": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "storedRequestVersion": 2,
+      "responseRequestVersion": 2,
+      "forceStepPlan": false
+    },
+    {
+      "name": "legacy-step-is-nonlazy-nonpriority",
+      "input": [
+        {
+          "op": "Step",
+          "id": "legacy",
+          "data": {
+            "data": {
+              "value": 1
+            }
+          }
+        }
+      ],
+      "expected": {
+        "priority": [],
+        "other": [
+          {
+            "op": "Step",
+            "id": "legacy"
+          }
+        ],
+        "nonLazyIds": [
+          "legacy"
+        ],
+        "historyGroup": false,
+        "hasPlanOp": false,
+        "priorityIndices": [],
+        "otherIndices": [
+          0
+        ],
+        "nonLazyIndices": [
+          0
+        ]
+      },
+      "runId": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "storedRequestVersion": 2,
+      "responseRequestVersion": 2,
+      "forceStepPlan": false
+    },
+    {
+      "name": "step-error-is-nonlazy-nonpriority",
+      "input": [
+        {
+          "op": "StepError",
+          "id": "error",
+          "error": {
+            "name": "Error",
+            "message": "fixture failure",
+            "stack": "opaque stack"
+          }
+        }
+      ],
+      "expected": {
+        "priority": [],
+        "other": [
+          {
+            "op": "StepError",
+            "id": "error"
+          }
+        ],
+        "nonLazyIds": [
+          "error"
+        ],
+        "historyGroup": false,
+        "hasPlanOp": false,
+        "priorityIndices": [],
+        "otherIndices": [
+          0
+        ],
+        "nonLazyIndices": [
+          0
+        ]
+      },
+      "runId": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "storedRequestVersion": 2,
+      "responseRequestVersion": 2,
+      "forceStepPlan": false
+    },
+    {
+      "name": "step-failed-is-nonlazy-nonpriority",
+      "input": [
+        {
+          "op": "StepFailed",
+          "id": "failed",
+          "error": {
+            "name": "Error",
+            "message": "fixture failure"
+          }
+        }
+      ],
+      "expected": {
+        "priority": [],
+        "other": [
+          {
+            "op": "StepFailed",
+            "id": "failed"
+          }
+        ],
+        "nonLazyIds": [
+          "failed"
+        ],
+        "historyGroup": false,
+        "hasPlanOp": false,
+        "priorityIndices": [],
+        "otherIndices": [
+          0
+        ],
+        "nonLazyIndices": [
+          0
+        ]
+      },
+      "runId": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "storedRequestVersion": 2,
+      "responseRequestVersion": 2,
+      "forceStepPlan": false
+    },
+    {
+      "name": "discovery-request-is-nonlazy-nonpriority",
+      "input": [
+        {
+          "op": "DiscoveryRequest",
+          "id": "discover"
+        }
+      ],
+      "expected": {
+        "priority": [],
+        "other": [
+          {
+            "op": "DiscoveryRequest",
+            "id": "discover"
+          }
+        ],
+        "nonLazyIds": [
+          "discover"
+        ],
+        "historyGroup": false,
+        "hasPlanOp": false,
+        "priorityIndices": [],
+        "otherIndices": [
+          0
+        ],
+        "nonLazyIndices": [
+          0
+        ]
+      },
+      "runId": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "storedRequestVersion": 2,
+      "responseRequestVersion": 2,
+      "forceStepPlan": false
+    },
+    {
+      "name": "empty-opcode-batch",
+      "input": [],
+      "expected": {
+        "priority": [],
+        "other": [],
+        "nonLazyIds": [],
+        "historyGroup": false,
+        "hasPlanOp": false,
+        "priorityIndices": [],
+        "otherIndices": [],
+        "nonLazyIndices": []
+      },
+      "runId": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "storedRequestVersion": 2,
+      "responseRequestVersion": 2,
+      "forceStepPlan": false
+    },
+    {
+      "name": "ordinary-opcodes-with-lazy-defers-retain-history-and-positions",
+      "input": [
+        {
+          "op": "StepFailed",
+          "id": "dup"
+        },
+        {
+          "op": "DeferAbort",
+          "id": "lazy"
+        },
+        {
+          "op": "DiscoveryRequest",
+          "id": "dup"
+        },
+        {
+          "op": "Step",
+          "id": "legacy"
+        },
+        {
+          "op": "DeferAdd",
+          "id": "lazy"
+        },
+        {
+          "op": "None",
+          "id": ""
+        },
+        {
+          "op": "StepError",
+          "id": "dup"
+        }
+      ],
+      "expected": {
+        "priority": [
+          {
+            "op": "DeferAbort",
+            "id": "lazy"
+          },
+          {
+            "op": "DeferAdd",
+            "id": "lazy"
+          }
+        ],
+        "other": [
+          {
+            "op": "StepFailed",
+            "id": "dup"
+          },
+          {
+            "op": "DiscoveryRequest",
+            "id": "dup"
+          },
+          {
+            "op": "Step",
+            "id": "legacy"
+          },
+          {
+            "op": "None",
+            "id": ""
+          },
+          {
+            "op": "StepError",
+            "id": "dup"
+          }
+        ],
+        "nonLazyIds": [
+          "dup",
+          "dup",
+          "legacy",
+          "",
+          "dup"
+        ],
+        "historyGroup": true,
+        "hasPlanOp": false,
+        "priorityIndices": [
+          1,
+          4
+        ],
+        "otherIndices": [
+          0,
+          2,
+          3,
+          5,
+          6
+        ],
+        "nonLazyIndices": [
+          0,
+          2,
+          3,
+          5,
+          6
+        ]
+      },
+      "runId": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "storedRequestVersion": 2,
+      "responseRequestVersion": 2,
+      "forceStepPlan": false
     }
   ],
   "coalesceHashCases": [
