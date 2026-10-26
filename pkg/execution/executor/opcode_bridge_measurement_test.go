@@ -109,7 +109,7 @@ func TestOpcodeBridgeMeasurementHarness(t *testing.T) {
 		ResourceLimitations: "10ms sampled RSS can miss short peaks and sampler contention can affect latency; aggregate is summed at each observation, not a sum of independent peaks, and double-counts shared pages; host includes test runtime and workload fixtures; Rust workers have no Go goroutine count; threads and RSS may remain retained after close; startup/first-request distributions are serial fresh size-one pools and have no sampled resource peaks; row startup is through all pool workers READY; the single first request in each row is before preflight; steady samples exclude both and preflight warmup",
 	}
 	if !opcodeSpikeFFIEnabled() {
-		report.SkippedLanes = []string{"ffi_decoded: requires opcode_bridge_ffi and cgo", "ffi_full_driver_response_json: requires opcode_bridge_ffi and cgo"}
+		report.SkippedLanes = []string{"ffi_decoded: requires opcode_bridge_ffi and cgo", "ffi_full_driver_response_json: requires opcode_bridge_ffi and cgo", "ffi_direct_decoded: requires opcode_bridge_ffi and cgo", "ffi_direct_full_driver_response_json: requires opcode_bridge_ffi and cgo"}
 	}
 	type row struct {
 		lane        string
@@ -211,7 +211,7 @@ func opcodeSpikeChildEnv(environment []string, overrides map[string]string) []st
 func opcodeSpikeMeasurementLanes() []string {
 	lanes := []string{"go_helper_decoded", "go_helper_full_driver_response_json", "process_decoded", "process_full_driver_response_json"}
 	if opcodeSpikeFFIEnabled() {
-		lanes = append(lanes, "ffi_decoded", "ffi_full_driver_response_json")
+		lanes = append(lanes, "ffi_decoded", "ffi_full_driver_response_json", "ffi_direct_decoded", "ffi_direct_full_driver_response_json")
 	}
 	return lanes
 }
@@ -403,7 +403,7 @@ func opcodeSpikeRepresentativeWorkload(name string) bool {
 }
 
 func opcodeSpikeAllMeasurementLanes() []string {
-	return []string{"go_helper_decoded", "go_helper_full_driver_response_json", "process_decoded", "process_full_driver_response_json", "ffi_decoded", "ffi_full_driver_response_json"}
+	return []string{"go_helper_decoded", "go_helper_full_driver_response_json", "process_decoded", "process_full_driver_response_json", "ffi_decoded", "ffi_full_driver_response_json", "ffi_direct_decoded", "ffi_direct_full_driver_response_json"}
 }
 
 func selectOpcodeSpikeNames(t testing.TB, name string, allowed []string) []string {
@@ -568,8 +568,8 @@ func opcodeSpikeGoOutput(ops []*state.GeneratorOpcode) opcodeSpikeOutput {
 }
 
 func opcodeSpikeBridgeProjection(lane string, ops []*state.GeneratorOpcode, pool *opcodespike.Pool, requestID uint64) (opcodespike.Projection, error) {
-	// Projection allocation, input checks, codec copies, transport and semantic
-	// result validation in DecodeResult are deliberately part of bridge timing.
+	// Projection allocation, input checks, transport, semantic validation and
+	// any representation costs (framing only for framed lanes) are timed.
 	tags, err := opcodespike.TagsFromOpcodes(ops)
 	if err != nil {
 		return opcodespike.Projection{}, err
@@ -581,7 +581,7 @@ func opcodeSpikeBridgeProjection(lane string, ops []*state.GeneratorOpcode, pool
 		}
 		return pool.Evaluate(context.Background(), tags)
 	case strings.HasPrefix(lane, "ffi_"):
-		return opcodeSpikeEvaluateFFI(context.Background(), tags, requestID)
+		return opcodeSpikeEvaluateFFI(context.Background(), tags, requestID, strings.HasPrefix(lane, "ffi_direct_"))
 	default:
 		return opcodespike.Projection{}, fmt.Errorf("unknown bridge lane %q", lane)
 	}
@@ -706,10 +706,11 @@ func measureOpcodeSpikeLane(
 ) opcodeSpikeLatency {
 	t.Helper()
 	isFFI := strings.HasPrefix(lane, "ffi_")
+	isDirectFFI := strings.HasPrefix(lane, "ffi_direct_")
 	var ffiRequestID atomic.Uint64
-	if isFFI {
-		// Preflight uses 1/2, first request 3, warmup 4 through 3+concurrency.
-		// Process workers assign their own IDs and Go helpers need none.
+	if isFFI && !isDirectFFI {
+		// Framed requests carry the ID, so keep its concurrent allocator. The
+		// direct ABI's diagnostic-only ID uses the unique job index below.
 		ffiRequestID.Store(uint64(3 + concurrency))
 	}
 	durations := make([]time.Duration, samples)
@@ -735,7 +736,11 @@ func measureOpcodeSpikeLane(
 			for index := range jobs {
 				began := time.Now()
 				var requestID uint64
-				if isFFI {
+				if isDirectFFI {
+					// Preflight uses 1/2, first request 3, and warmup uses 4 through
+					// 3+concurrency. Continue that unique range without contention.
+					requestID = uint64(index) + uint64(4+concurrency)
+				} else if isFFI {
 					requestID = ffiRequestID.Add(1)
 				}
 				output, err := runOpcodeSpikeLane(lane, workload, pool, requestID)

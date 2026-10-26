@@ -11,6 +11,6 @@ import (
 
 func opcodeSpikeFFIEnabled() bool { return false }
 
-func opcodeSpikeEvaluateFFI(context.Context, []opcodespike.Tag, uint64) (opcodespike.Projection, error) {
+func opcodeSpikeEvaluateFFI(context.Context, []opcodespike.Tag, uint64, bool) (opcodespike.Projection, error) {
 	return opcodespike.Projection{}, errors.New("FFI lane requires opcode_bridge_ffi and cgo")
 }
