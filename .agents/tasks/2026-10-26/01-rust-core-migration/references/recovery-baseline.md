@@ -7,6 +7,13 @@
 The synthetic corpus was authored against layer 2 `8ebc428587cc11220e86d6fbbd5ab7ffc3bf5fef`;
 its provenance remains pinned there after integration with layer 3.
 
+**Delivery:** [PR #4](https://github.com/ashutoshpw/inngest/pull/4), head branch
+`t3/recovery-replay-witness`, base branch `t3/queue-persistence-compat-fixtures`.
+Opening implementation commit: `0394e148e016f78647ccab4520396c821eef5f5d`.
+Open, non-draft; no GitHub reviews or check runs at opening. Linked to parent
+thread `c37dccc0-74a6-4b56-bc19-0ffcf321cc19`; merge pending. The delivery handoff
+reports the current head after this metadata commit.
+
 ## Accepted boundary
 
 The [fixture README](../../../../../tests/execution/executor/testdata/sdk-response-replay-v1/README.md)
