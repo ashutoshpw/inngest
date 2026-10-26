@@ -2,6 +2,7 @@
 members = [
     "crates/opcode-kernel",
     "crates/opcode-bridge",
+    "crates/response-continuation",
 ]
 resolver = "3"
 
