@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "contract": "generator-parser-v1",
+  "source": {
+    "repository": "github.com/inngest/inngest",
+    "commit": "3624c37d5285805d2a95efd0715e8913d5f81ae8",
+    "files": [
+      "pkg/execution/driver/httpdriver/parse.go",
+      "pkg/execution/state/opcode.go",
+      "pkg/enums/opcode.go"
+    ]
+  },
+  "cases": [
+    {
+      "name": "legacy-single-opcode-object",
+      "input": "{\"op\":\"Step\",\"id\":\"legacy-step\",\"data\":{\"step\":{\"result\":7}}}",
+      "expected": {
+        "ops": [
+          { "op": "Step", "id": "legacy-step", "data": { "step": { "result": 7 } } }
+        ]
+      }
+    },
+    {
+      "name": "legacy-step-output-absent",
+      "input": "{\"op\":\"Step\",\"id\":\"legacy-no-output\"}",
+      "expected": {
+        "ops": [{ "op": "Step", "id": "legacy-no-output" }]
+      }
+    },
+    {
+      "name": "step-run-and-step-failed-output-absent-or-null",
+      "input": "[{\"op\":\"StepRun\",\"id\":\"run-absent\"},{\"op\":\"StepRun\",\"id\":\"run-null\",\"data\":null},{\"op\":\"StepFailed\",\"id\":\"failed-absent\"}]",
+      "expected": {
+        "ops": [
+          { "op": "StepRun", "id": "run-absent" },
+          { "op": "StepRun", "id": "run-null", "data": null },
+          { "op": "StepFailed", "id": "failed-absent" }
+        ]
+      }
+    },
+    {
+      "name": "empty-array-normalizes-to-none",
+      "input": "[]",
+      "expected": {
+        "ops": [{ "op": "None", "id": "" }]
+      }
+    },
+    {
+      "name": "malformed-root-shape",
+      "input": "not-json",
+      "expected": {
+        "error": "error reading generator opcode response: expected JSON object or array"
+      }
+    },
+    {
+      "name": "malformed-object-json",
+      "input": "{",
+      "expected": {
+        "error": "error reading generator opcode response: unexpected end of JSON input"
+      }
+    },
+    {
+      "name": "null-array-entry",
+      "input": "[null]",
+      "expected": {
+        "error": "error validating generator opcode 0: opcode cannot be null"
+      }
+    },
+    {
+      "name": "unknown-opcode-enum",
+      "input": "[{\"op\":\"NotAnOpcode\",\"id\":\"unknown\"}]",
+      "expected": {
+        "error": "error reading generator opcode response: NotAnOpcode does not belong to Opcode values"
+      }
+    },
+    {
+      "name": "step-error-copies-no-retry-header",
+      "noRetry": true,
+      "input": "[{\"op\":\"StepError\",\"id\":\"failed\",\"error\":{\"name\":\"NonRetriableError\",\"message\":\"stop\"}}]",
+      "expected": {
+        "ops": [
+          {
+            "op": "StepError",
+            "id": "failed",
+            "error": { "name": "NonRetriableError", "message": "stop", "noRetry": true }
+          }
+        ]
+      }
+    },
+    {
+      "name": "step-error-without-error-is-rejected",
+      "noRetry": true,
+      "input": "[{\"op\":\"StepError\",\"id\":\"missing-error\"}]",
+      "expected": {
+        "errorContains": "OpcodeStepError received without Error field set"
+      }
+    }
+  ]
+}
