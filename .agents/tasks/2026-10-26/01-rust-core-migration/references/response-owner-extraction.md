@@ -1,4 +1,4 @@
-# Bounded Go response-owner extraction (accepted; PR delivery in progress)
+# Bounded Go response-owner extraction (accepted; PR #10 open)
 
 Worktree `/home/ashutosh/.t3/worktrees/inngest/t3-ca8735b9`, branch
 `t3/extract-go-response-owner`. `git worktree list` confirmed this checkout owns
@@ -302,8 +302,14 @@ This is a real save-result continuation seam, not the completed Rust boundary.
 - The eight-file scope is limited to the three production files, one existing
   executor corpus test, and those four task records. No cache, binary, overlay,
   or unrelated file is part of the change.
-- PR number, URL, opening commit, review state, and opening checks will be added
-  here after creation. The PR targets `t3/stage-batch-reference-corpus` (PR #9).
+- [PR #10](https://github.com/ashutoshpw/inngest/pull/10) targets
+  `t3/stage-batch-reference-corpus` (PR #9) from
+  `t3/extract-go-response-owner`. It opened at
+  `275ae735f5343ed287f261648944f13d6a2e36dd`; the immediate opening snapshot was
+  open, non-draft and mergeable, with `latestReviews: []`, an empty review
+  decision, and `statusCheckRollup: []`. This records the opening snapshot only;
+  no watch or polling was started. The PR is linked to this child thread and
+  parent thread `c37dccc0-74a6-4b56-bc19-0ffcf321cc19`.
 - No delegation, Rust implementation, ABI, routing, activation or new resource
   was added. The accepted change is not the whole response continuation.
 - Review risks: this intentionally leaves coarse queue effects and retry/planned
