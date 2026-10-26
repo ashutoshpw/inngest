@@ -1,0 +1,851 @@
+{
+  "schemaVersion": 1,
+  "contract": "opcode-plan-v1",
+  "source": {
+    "repository": "github.com/inngest/inngest",
+    "commit": "3624c37d5285805d2a95efd0715e8913d5f81ae8",
+    "files": [
+      "pkg/execution/executor/util.go",
+      "pkg/execution/executor/executor.go",
+      "pkg/execution/state/v2/state_metadata.go",
+      "pkg/enums/opcode.go"
+    ]
+  },
+  "cases": [
+    {
+      "name": "interleaved-wait-sleep-completion",
+      "runId": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "storedRequestVersion": 2,
+      "responseRequestVersion": 2,
+      "forceStepPlan": true,
+      "input": [
+        {
+          "op": "Sleep",
+          "id": "sleep-1"
+        },
+        {
+          "op": "WaitForEvent",
+          "id": "wait-1"
+        },
+        {
+          "op": "RunComplete",
+          "id": "complete-1"
+        },
+        {
+          "op": "WaitForEvent",
+          "id": "wait-2"
+        }
+      ],
+      "expected": {
+        "priority": [
+          {
+            "op": "WaitForEvent",
+            "id": "wait-1"
+          },
+          {
+            "op": "WaitForEvent",
+            "id": "wait-2"
+          }
+        ],
+        "other": [
+          {
+            "op": "Sleep",
+            "id": "sleep-1"
+          },
+          {
+            "op": "RunComplete",
+            "id": "complete-1"
+          }
+        ],
+        "nonLazyIds": [
+          "wait-1",
+          "wait-2",
+          "sleep-1",
+          "complete-1"
+        ],
+        "historyGroup": true,
+        "hasPlanOp": true
+      }
+    },
+    {
+      "name": "host-with-both-lazy-defers",
+      "runId": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "storedRequestVersion": 2,
+      "responseRequestVersion": 2,
+      "forceStepPlan": false,
+      "input": [
+        {
+          "op": "StepRun",
+          "id": "host-step"
+        },
+        {
+          "op": "DeferAdd",
+          "id": "defer-add"
+        },
+        {
+          "op": "DeferAbort",
+          "id": "defer-abort"
+        }
+      ],
+      "expected": {
+        "priority": [
+          {
+            "op": "DeferAdd",
+            "id": "defer-add"
+          },
+          {
+            "op": "DeferAbort",
+            "id": "defer-abort"
+          }
+        ],
+        "other": [
+          {
+            "op": "StepRun",
+            "id": "host-step"
+          }
+        ],
+        "nonLazyIds": [
+          "host-step"
+        ],
+        "historyGroup": false,
+        "hasPlanOp": false
+      }
+    },
+    {
+      "name": "lazy-only",
+      "runId": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "storedRequestVersion": 2,
+      "responseRequestVersion": 2,
+      "forceStepPlan": false,
+      "input": [
+        {
+          "op": "DeferAdd",
+          "id": "defer-add"
+        },
+        {
+          "op": "DeferAbort",
+          "id": "defer-abort"
+        }
+      ],
+      "expected": {
+        "priority": [
+          {
+            "op": "DeferAdd",
+            "id": "defer-add"
+          },
+          {
+            "op": "DeferAbort",
+            "id": "defer-abort"
+          }
+        ],
+        "other": [],
+        "nonLazyIds": [],
+        "historyGroup": false,
+        "hasPlanOp": false
+      }
+    },
+    {
+      "name": "completion-before-defer",
+      "runId": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "storedRequestVersion": 2,
+      "responseRequestVersion": 2,
+      "forceStepPlan": false,
+      "input": [
+        {
+          "op": "RunComplete",
+          "id": "complete-1"
+        },
+        {
+          "op": "DeferAdd",
+          "id": "defer-add"
+        }
+      ],
+      "expected": {
+        "priority": [
+          {
+            "op": "DeferAdd",
+            "id": "defer-add"
+          }
+        ],
+        "other": [
+          {
+            "op": "RunComplete",
+            "id": "complete-1"
+          }
+        ],
+        "nonLazyIds": [
+          "complete-1"
+        ],
+        "historyGroup": false,
+        "hasPlanOp": false
+      }
+    },
+    {
+      "name": "signal-invoke-and-gateway-are-nonpriority",
+      "runId": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "storedRequestVersion": 2,
+      "responseRequestVersion": 2,
+      "forceStepPlan": true,
+      "input": [
+        {
+          "op": "WaitForSignal",
+          "id": "signal-1"
+        },
+        {
+          "op": "InvokeFunction",
+          "id": "invoke-1"
+        },
+        {
+          "op": "Gateway",
+          "id": "gateway-1"
+        },
+        {
+          "op": "AIGateway",
+          "id": "ai-1"
+        }
+      ],
+      "expected": {
+        "priority": [],
+        "other": [
+          {
+            "op": "WaitForSignal",
+            "id": "signal-1"
+          },
+          {
+            "op": "InvokeFunction",
+            "id": "invoke-1"
+          },
+          {
+            "op": "Gateway",
+            "id": "gateway-1"
+          },
+          {
+            "op": "AIGateway",
+            "id": "ai-1"
+          }
+        ],
+        "nonLazyIds": [
+          "signal-1",
+          "invoke-1",
+          "gateway-1",
+          "ai-1"
+        ],
+        "historyGroup": true,
+        "hasPlanOp": true
+      }
+    },
+    {
+      "name": "wait-for-event-alone-is-plan-capable",
+      "runId": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "storedRequestVersion": 2,
+      "responseRequestVersion": 2,
+      "forceStepPlan": true,
+      "input": [
+        {
+          "op": "WaitForEvent",
+          "id": "wait-1"
+        }
+      ],
+      "expected": {
+        "priority": [
+          {
+            "op": "WaitForEvent",
+            "id": "wait-1"
+          }
+        ],
+        "other": [],
+        "nonLazyIds": [
+          "wait-1"
+        ],
+        "historyGroup": false,
+        "hasPlanOp": true
+      }
+    },
+    {
+      "name": "step-planned-alone-is-plan-capable",
+      "runId": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "storedRequestVersion": 2,
+      "responseRequestVersion": 2,
+      "forceStepPlan": true,
+      "input": [
+        {
+          "op": "StepPlanned",
+          "id": "planned-1"
+        }
+      ],
+      "expected": {
+        "priority": [],
+        "other": [
+          {
+            "op": "StepPlanned",
+            "id": "planned-1"
+          }
+        ],
+        "nonLazyIds": [
+          "planned-1"
+        ],
+        "historyGroup": false,
+        "hasPlanOp": true
+      }
+    },
+    {
+      "name": "sleep-alone-is-plan-capable",
+      "runId": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "storedRequestVersion": 2,
+      "responseRequestVersion": 2,
+      "forceStepPlan": true,
+      "input": [
+        {
+          "op": "Sleep",
+          "id": "sleep-1"
+        }
+      ],
+      "expected": {
+        "priority": [],
+        "other": [
+          {
+            "op": "Sleep",
+            "id": "sleep-1"
+          }
+        ],
+        "nonLazyIds": [
+          "sleep-1"
+        ],
+        "historyGroup": false,
+        "hasPlanOp": true
+      }
+    },
+    {
+      "name": "invoke-function-alone-is-plan-capable",
+      "runId": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "storedRequestVersion": 2,
+      "responseRequestVersion": 2,
+      "forceStepPlan": true,
+      "input": [
+        {
+          "op": "InvokeFunction",
+          "id": "invoke-1"
+        }
+      ],
+      "expected": {
+        "priority": [],
+        "other": [
+          {
+            "op": "InvokeFunction",
+            "id": "invoke-1"
+          }
+        ],
+        "nonLazyIds": [
+          "invoke-1"
+        ],
+        "historyGroup": false,
+        "hasPlanOp": true
+      }
+    },
+    {
+      "name": "gateway-alone-is-plan-capable",
+      "runId": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "storedRequestVersion": 2,
+      "responseRequestVersion": 2,
+      "forceStepPlan": true,
+      "input": [
+        {
+          "op": "Gateway",
+          "id": "gateway-1"
+        }
+      ],
+      "expected": {
+        "priority": [],
+        "other": [
+          {
+            "op": "Gateway",
+            "id": "gateway-1"
+          }
+        ],
+        "nonLazyIds": [
+          "gateway-1"
+        ],
+        "historyGroup": false,
+        "hasPlanOp": true
+      }
+    },
+    {
+      "name": "ai-gateway-alone-is-plan-capable",
+      "runId": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "storedRequestVersion": 2,
+      "responseRequestVersion": 2,
+      "forceStepPlan": true,
+      "input": [
+        {
+          "op": "AIGateway",
+          "id": "ai-gateway-1"
+        }
+      ],
+      "expected": {
+        "priority": [],
+        "other": [
+          {
+            "op": "AIGateway",
+            "id": "ai-gateway-1"
+          }
+        ],
+        "nonLazyIds": [
+          "ai-gateway-1"
+        ],
+        "historyGroup": false,
+        "hasPlanOp": true
+      }
+    },
+    {
+      "name": "signal-alone-is-plan-capable-nonpriority",
+      "runId": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "storedRequestVersion": 2,
+      "responseRequestVersion": 2,
+      "forceStepPlan": false,
+      "input": [
+        {
+          "op": "WaitForSignal",
+          "id": "signal-1"
+        }
+      ],
+      "expected": {
+        "priority": [],
+        "other": [
+          {
+            "op": "WaitForSignal",
+            "id": "signal-1"
+          }
+        ],
+        "nonLazyIds": [
+          "signal-1"
+        ],
+        "historyGroup": false,
+        "hasPlanOp": true
+      }
+    },
+    {
+      "name": "ordinary-parallel-steps-need-a-plan-capable-op",
+      "runId": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "storedRequestVersion": 2,
+      "responseRequestVersion": 2,
+      "forceStepPlan": true,
+      "input": [
+        {
+          "op": "StepRun",
+          "id": "step-1"
+        },
+        {
+          "op": "StepRun",
+          "id": "step-2"
+        }
+      ],
+      "expected": {
+        "priority": [],
+        "other": [
+          {
+            "op": "StepRun",
+            "id": "step-1"
+          },
+          {
+            "op": "StepRun",
+            "id": "step-2"
+          }
+        ],
+        "nonLazyIds": [
+          "step-1",
+          "step-2"
+        ],
+        "historyGroup": true,
+        "hasPlanOp": false,
+        "shouldCoalesce": false,
+        "coalesceKey": "",
+        "metadataUpdates": [
+          {
+            "requestVersion": 2,
+            "forceStepPlan": false
+          },
+          {
+            "requestVersion": 2,
+            "forceStepPlan": false
+          }
+        ],
+        "handlerEnqueues": 2
+      },
+      "handlerCase": true
+    },
+    {
+      "name": "nonlazy-ids-retain-duplicates-and-empty-values",
+      "runId": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "storedRequestVersion": 2,
+      "responseRequestVersion": 2,
+      "forceStepPlan": false,
+      "input": [
+        {
+          "op": "WaitForEvent",
+          "id": ""
+        },
+        {
+          "op": "StepRun",
+          "id": "dup"
+        },
+        {
+          "op": "StepRun",
+          "id": "dup"
+        },
+        {
+          "op": "DeferAdd",
+          "id": "lazy-empty"
+        }
+      ],
+      "expected": {
+        "priority": [
+          {
+            "op": "WaitForEvent",
+            "id": ""
+          },
+          {
+            "op": "DeferAdd",
+            "id": "lazy-empty"
+          }
+        ],
+        "other": [
+          {
+            "op": "StepRun",
+            "id": "dup"
+          },
+          {
+            "op": "StepRun",
+            "id": "dup"
+          }
+        ],
+        "nonLazyIds": [
+          "",
+          "dup",
+          "dup"
+        ],
+        "historyGroup": true,
+        "hasPlanOp": true
+      }
+    },
+    {
+      "name": "planned-pair-unknown-stored-version-preserves-force-plan",
+      "runId": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "storedRequestVersion": -1,
+      "responseRequestVersion": 2,
+      "forceStepPlan": true,
+      "handlerCase": true,
+      "input": [
+        {
+          "op": "StepPlanned",
+          "id": "step-a"
+        },
+        {
+          "op": "StepPlanned",
+          "id": "step-b"
+        }
+      ],
+      "expected": {
+        "priority": [],
+        "other": [
+          {
+            "op": "StepPlanned",
+            "id": "step-a"
+          },
+          {
+            "op": "StepPlanned",
+            "id": "step-b"
+          }
+        ],
+        "nonLazyIds": [
+          "step-a",
+          "step-b"
+        ],
+        "historyGroup": true,
+        "hasPlanOp": true,
+        "shouldCoalesce": true,
+        "coalesceKey": "1af438d9048ad7aa",
+        "metadataUpdates": [
+          {
+            "requestVersion": 2,
+            "forceStepPlan": true
+          }
+        ],
+        "handlerEnqueues": 2
+      }
+    },
+    {
+      "name": "planned-pair-stored-version-wins-over-response",
+      "runId": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "storedRequestVersion": 1,
+      "responseRequestVersion": 2,
+      "forceStepPlan": false,
+      "handlerCase": true,
+      "input": [
+        {
+          "op": "StepPlanned",
+          "id": "step-a"
+        },
+        {
+          "op": "StepPlanned",
+          "id": "step-b"
+        }
+      ],
+      "expected": {
+        "priority": [],
+        "other": [
+          {
+            "op": "StepPlanned",
+            "id": "step-a"
+          },
+          {
+            "op": "StepPlanned",
+            "id": "step-b"
+          }
+        ],
+        "nonLazyIds": [
+          "step-a",
+          "step-b"
+        ],
+        "historyGroup": true,
+        "hasPlanOp": true,
+        "shouldCoalesce": false,
+        "metadataUpdates": [
+          {
+            "requestVersion": 2,
+            "forceStepPlan": true
+          }
+        ],
+        "handlerEnqueues": 2
+      }
+    },
+    {
+      "name": "planned-pair-stored-v2-wins-over-response",
+      "runId": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "storedRequestVersion": 2,
+      "responseRequestVersion": 1,
+      "forceStepPlan": true,
+      "handlerCase": true,
+      "input": [
+        {
+          "op": "StepPlanned",
+          "id": "step-a"
+        },
+        {
+          "op": "StepPlanned",
+          "id": "step-b"
+        }
+      ],
+      "expected": {
+        "priority": [],
+        "other": [
+          {
+            "op": "StepPlanned",
+            "id": "step-a"
+          },
+          {
+            "op": "StepPlanned",
+            "id": "step-b"
+          }
+        ],
+        "nonLazyIds": [
+          "step-a",
+          "step-b"
+        ],
+        "historyGroup": true,
+        "hasPlanOp": true,
+        "shouldCoalesce": true,
+        "coalesceKey": "1af438d9048ad7aa",
+        "metadataUpdates": [],
+        "handlerEnqueues": 2
+      }
+    },
+    {
+      "name": "completed-only-multiple-ops-do-not-coalesce",
+      "runId": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "storedRequestVersion": 2,
+      "responseRequestVersion": 2,
+      "forceStepPlan": true,
+      "handlerCase": true,
+      "input": [
+        {
+          "op": "SyncRunComplete",
+          "id": "complete-a"
+        },
+        {
+          "op": "SyncRunComplete",
+          "id": "complete-b"
+        }
+      ],
+      "expected": {
+        "priority": [],
+        "other": [
+          {
+            "op": "SyncRunComplete",
+            "id": "complete-a"
+          },
+          {
+            "op": "SyncRunComplete",
+            "id": "complete-b"
+          }
+        ],
+        "nonLazyIds": [
+          "complete-a",
+          "complete-b"
+        ],
+        "historyGroup": true,
+        "hasPlanOp": false,
+        "shouldCoalesce": false,
+        "coalesceKey": "",
+        "metadataUpdates": [],
+        "handlerEnqueues": 0,
+        "handlerError": true
+      }
+    },
+    {
+      "name": "planned-step-with-lazy-defer-does-not-coalesce",
+      "runId": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "storedRequestVersion": 2,
+      "responseRequestVersion": 2,
+      "forceStepPlan": true,
+      "handlerCase": true,
+      "input": [
+        {
+          "op": "StepPlanned",
+          "id": "planned-1"
+        },
+        {
+          "op": "DeferAdd",
+          "id": "defer-add"
+        }
+      ],
+      "expected": {
+        "priority": [
+          {
+            "op": "DeferAdd",
+            "id": "defer-add"
+          }
+        ],
+        "other": [
+          {
+            "op": "StepPlanned",
+            "id": "planned-1"
+          }
+        ],
+        "nonLazyIds": [
+          "planned-1"
+        ],
+        "historyGroup": false,
+        "hasPlanOp": true,
+        "shouldCoalesce": false,
+        "coalesceKey": "",
+        "metadataUpdates": [],
+        "handlerEnqueues": 1
+      }
+    },
+    {
+      "name": "save-pending-failure-stops-handler-fanout",
+      "runId": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "storedRequestVersion": 2,
+      "responseRequestVersion": 2,
+      "forceStepPlan": true,
+      "handlerCase": true,
+      "failSavePending": true,
+      "input": [
+        {
+          "op": "StepPlanned",
+          "id": "step-a"
+        },
+        {
+          "op": "StepPlanned",
+          "id": "step-b"
+        }
+      ],
+      "expected": {
+        "priority": [],
+        "other": [
+          {
+            "op": "StepPlanned",
+            "id": "step-a"
+          },
+          {
+            "op": "StepPlanned",
+            "id": "step-b"
+          }
+        ],
+        "nonLazyIds": [
+          "step-a",
+          "step-b"
+        ],
+        "historyGroup": true,
+        "hasPlanOp": true,
+        "shouldCoalesce": true,
+        "coalesceKey": "1af438d9048ad7aa",
+        "metadataUpdates": [],
+        "handlerEnqueues": 0
+      }
+    }
+  ],
+  "coalesceHashCases": [
+    {
+      "name": "parallel-step-pair",
+      "runId": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "stepIds": [
+        "step-a",
+        "step-b"
+      ],
+      "expectedKey": "1af438d9048ad7aa",
+      "expectedDiscoveryJobId": "01ARZ3NDEKTSV4RRFFQ69G5FAV-1af438d9048ad7aa-discover"
+    },
+    {
+      "name": "reordered-step-pair",
+      "runId": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "stepIds": [
+        "step-b",
+        "step-a"
+      ],
+      "expectedKey": "1af438d9048ad7aa",
+      "sameKeyAs": "parallel-step-pair"
+    },
+    {
+      "name": "duplicate-step-id-is-significant",
+      "runId": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "stepIds": [
+        "step-a",
+        "step-a",
+        "step-b"
+      ],
+      "expectedKey": "13fa418a9b022a06",
+      "differentKeyFrom": "parallel-step-pair"
+    },
+    {
+      "name": "same-steps-different-run",
+      "runId": "01ARZ3NDEKTSV4RRFFQ69G5FAW",
+      "stepIds": [
+        "step-a",
+        "step-b"
+      ],
+      "expectedKey": "28e50f3e49623c23",
+      "differentKeyFrom": "parallel-step-pair"
+    },
+    {
+      "name": "delimiter-boundary-left",
+      "runId": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "stepIds": [
+        "ab",
+        "c"
+      ],
+      "expectedKey": "3c31dddddcf3d938",
+      "differentKeyFrom": "delimiter-boundary-right"
+    },
+    {
+      "name": "delimiter-boundary-right",
+      "runId": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+      "stepIds": [
+        "a",
+        "bc"
+      ],
+      "expectedKey": "53fda8ff0609031c",
+      "differentKeyFrom": "delimiter-boundary-left"
+    }
+  ]
+}

@@ -1,0 +1,374 @@
+{
+  "source_revision": "3624c37d5285805d2a95efd0715e8913d5f81ae8",
+  "common": {
+    "function_id": "11111111-2222-3333-4444-555555555555",
+    "run_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "env": "staging",
+    "step_id": "run",
+    "max_attempts": 3,
+    "queue_item_ref": "queue:fixture"
+  },
+  "cases": [
+    {
+      "name": "empty_stack_absent_user",
+      "input": {
+        "events": [
+          "{\"name\":\"fixture/empty\",\"data\":{}}"
+        ],
+        "steps": {},
+        "stack": null,
+        "state_size": 0,
+        "request_version": -1
+      },
+      "expected_file": "empty.wire.json",
+      "expected_bytes": 425,
+      "expected_sha256": "c2223797b675cb283d86f08ef406d22934c1d2378d78d64a0d90cfb4e1fe96c5"
+    },
+    {
+      "name": "empty_stack_null_user",
+      "input": {
+        "events": [
+          "{\"name\":\"fixture/empty\",\"data\":{},\"user\":null}"
+        ],
+        "steps": {},
+        "stack": [],
+        "state_size": 0,
+        "request_version": -1
+      },
+      "expected_file": "empty.wire.json",
+      "expected_bytes": 425,
+      "expected_sha256": "c2223797b675cb283d86f08ef406d22934c1d2378d78d64a0d90cfb4e1fe96c5"
+    },
+    {
+      "name": "replay",
+      "input": {
+        "events": [
+          "{\"user\":{\"id\":\"user-1\"},\"name\":\"fixture/replay\",\"data\":{\"nested\":[null,true,{\"label\":\"雪 café é 😀\",\"fraction\":1.25,\"large\":9007199254740993,\"huge\":1e30,\"zero\":-0,\"html\":\"<>&\",\"\\ue000\":\"bmp\",\"😀\":\"astral\"}]}}",
+          "{\"name\":\"fixture/second\",\"data\":null,\"user\":null}"
+        ],
+        "steps": {
+          "success": "{\"data\":{\"payload\":\"@@REPLAY@@\",\"ok\":true,\"large\":9007199254740993}}",
+          "error": "{\"error\":{\"message\":\"bad\\n\\\"step\\\"\",\"name\":\"Error\",\"data\":null}}",
+          "finished-input": "{\"input\":{\"old\":1},\"data\":null}",
+          "altered": "{\"input\":{\"args\":[null,1.25,\"雪\"]}}",
+          "raced-output": "{\"data\":\"not in stack\"}",
+          "space-input": " {\"input\":{\"ignored\":true}}",
+          "reordered-input": "{\"other\":1,\"input\":{\"ignored\":true}}"
+        },
+        "stack": [
+          "success",
+          "error",
+          "finished-input"
+        ],
+        "state_size": 0,
+        "request_version": 1,
+        "stack_index": 2,
+        "attempt": 2,
+        "force_step_plan": true,
+        "request_id": "request:fixture",
+        "job_id": "job:fixture",
+        "generation_id": 7
+      },
+      "recipes": {
+        "@@REPLAY@@": {
+          "ascii": "x",
+          "count": 16384
+        }
+      },
+      "expected_file": "replay.wire.json",
+      "expected_bytes": 17536,
+      "expected_sha256": "907f4fc70f4a05f029b95c406d5e9fbaa8461ca035f13b77d332d21fd57f8346"
+    },
+    {
+      "name": "defer_abortability",
+      "input": {
+        "events": [
+          "{\"name\":\"fixture/empty\",\"data\":{}}"
+        ],
+        "steps": {},
+        "stack": null,
+        "state_size": 0,
+        "request_version": -1,
+        "defers": {
+          "unknown": {
+            "schedule_status": "unknown",
+            "fn_slug": "private-function",
+            "hashed_id": "metadata-id",
+            "meta": {
+              "private": "not on wire"
+            }
+          },
+          "scheduled": {
+            "schedule_status": "scheduled",
+            "fn_slug": "private-function",
+            "hashed_id": "metadata-id",
+            "meta": {
+              "private": "not on wire"
+            }
+          },
+          "after_run": {
+            "schedule_status": "after_run",
+            "fn_slug": "private-function",
+            "hashed_id": "metadata-id",
+            "meta": {
+              "private": "not on wire"
+            }
+          },
+          "aborted": {
+            "schedule_status": "aborted",
+            "fn_slug": "private-function",
+            "hashed_id": "metadata-id",
+            "meta": {
+              "private": "not on wire"
+            }
+          },
+          "rejected": {
+            "schedule_status": "rejected",
+            "fn_slug": "private-function",
+            "hashed_id": "metadata-id",
+            "meta": {
+              "private": "not on wire"
+            }
+          }
+        }
+      },
+      "expected_file": "defer_abortability.wire.json",
+      "expected_bytes": 578,
+      "expected_sha256": "f614842c34261bf7ca4a3cd2d271e87fb3a06c66ba068716da3066a3edb51a17"
+    },
+    {
+      "name": "defers_unimplemented",
+      "input": {
+        "events": [
+          "{\"name\":\"fixture/empty\",\"data\":{}}"
+        ],
+        "steps": {},
+        "stack": null,
+        "state_size": 0,
+        "request_version": -1,
+        "defers_error": "unimplemented"
+      },
+      "expected_file": "empty.wire.json",
+      "expected_bytes": 425,
+      "expected_sha256": "c2223797b675cb283d86f08ef406d22934c1d2378d78d64a0d90cfb4e1fe96c5"
+    },
+    {
+      "name": "defers_unavailable",
+      "input": {
+        "events": [
+          "{\"name\":\"fixture/empty\",\"data\":{}}"
+        ],
+        "steps": {},
+        "stack": null,
+        "state_size": 0,
+        "request_version": -1,
+        "defers_error": "unavailable"
+      },
+      "expected_error": "error loading defers in driver marshaller: rpc error: code = Unavailable desc = fixture defers failure"
+    },
+    {
+      "name": "missing_stack_state",
+      "input": {
+        "events": [
+          "{\"name\":\"fixture/empty\",\"data\":{}}"
+        ],
+        "steps": {
+          "other": "{\"data\":1}"
+        },
+        "stack": [
+          "missing"
+        ],
+        "state_size": 0,
+        "request_version": -1
+      },
+      "expected_error": "state and stack mismatch: missing not found in state; the function has probably ended"
+    },
+    {
+      "name": "malformed_event_json",
+      "input": {
+        "events": ["{\"data\":}"],
+        "steps": {},
+        "stack": null,
+        "request_version": -1
+      },
+      "expected_error": "error unmarshalling event in driver marshaller: invalid character '}' looking for beginning of value"
+    },
+    {
+      "name": "malformed_stacked_step_json",
+      "input": {
+        "events": ["{\"name\":\"fixture/empty\",\"data\":{}}"],
+        "steps": {"invalid": "{\"data\":}"},
+        "stack": ["invalid"],
+        "request_version": -1
+      },
+      "expected_error": "error marshalling request to JSON: json: error calling MarshalJSON for type json.RawMessage: invalid character '}' looking for beginning of value"
+    },
+    {
+      "name": "duplicate_key_stacked_step_json",
+      "input": {
+        "events": ["{\"name\":\"fixture/empty\",\"data\":{}}"],
+        "steps": {"invalid": "{\"data\":1,\"data\":2}"},
+        "stack": ["invalid"],
+        "request_version": -1
+      },
+      "expected_error": "error transforming request with JCS: Duplicate key: data"
+    },
+    {
+      "name": "state_size_below",
+      "input": {
+        "events": [
+          "{\"name\":\"fixture/empty\",\"data\":{}}"
+        ],
+        "steps": {
+          "success": "{\"data\":42}"
+        },
+        "stack": [
+          "success"
+        ],
+        "state_size": 4193279,
+        "request_version": -1
+      },
+      "expected_file": "state_inline.wire.json",
+      "expected_bytes": 455,
+      "expected_sha256": "70d4c5a19b355c0f2d35c43c96fdf7e765693183d715bf3a31e15ff45b33d35f"
+    },
+    {
+      "name": "state_size_at",
+      "input": {
+        "events": [
+          "{\"name\":\"fixture/empty\",\"data\":{}}"
+        ],
+        "steps": {
+          "success": "{\"data\":42}"
+        },
+        "stack": [
+          "success"
+        ],
+        "state_size": 4193280,
+        "request_version": -1
+      },
+      "expected_file": "state_inline.wire.json",
+      "expected_bytes": 455,
+      "expected_sha256": "70d4c5a19b355c0f2d35c43c96fdf7e765693183d715bf3a31e15ff45b33d35f"
+    },
+    {
+      "name": "state_size_above",
+      "input": {
+        "events": [
+          "{\"name\":\"fixture/empty\",\"data\":{}}"
+        ],
+        "steps": {
+          "success": "{\"data\":42}"
+        },
+        "stack": [
+          "success"
+        ],
+        "state_size": 4193281,
+        "request_version": -1,
+        "steps_error": "LoadSteps must be skipped above state threshold"
+      },
+      "expected_file": "state_size_above.wire.json",
+      "expected_bytes": 432,
+      "expected_sha256": "49e5047fdf7ed9793c7b08b824a149c19ada695e3f5d439087af09c3b2d22761"
+    },
+    {
+      "name": "body_size_below",
+      "input": {
+        "events": [
+          "{\"name\":\"fixture/empty\",\"data\":{}}"
+        ],
+        "steps": {
+          "large": "{\"data\":\"@@PADDING@@<\"}"
+        },
+        "stack": [
+          "large"
+        ],
+        "state_size": 0,
+        "request_version": -1
+      },
+      "recipes": {
+        "@@PADDING@@": {
+          "ascii": "x",
+          "count": 4193846
+        }
+      },
+      "expected_file": "body_inline.wire.json",
+      "pre_jcs_body_bytes": 4194303,
+      "expected_bytes": 4194298,
+      "expected_sha256": "989af6287fefacf9179a6b60aeb21dbe5bdeddd7f7353f969a4150dae15d1cc7"
+    },
+    {
+      "name": "body_size_at",
+      "input": {
+        "events": [
+          "{\"name\":\"fixture/empty\",\"data\":{}}"
+        ],
+        "steps": {
+          "large": "{\"data\":\"@@PADDING@@<\"}"
+        },
+        "stack": [
+          "large"
+        ],
+        "state_size": 0,
+        "request_version": -1
+      },
+      "recipes": {
+        "@@PADDING@@": {
+          "ascii": "x",
+          "count": 4193847
+        }
+      },
+      "expected_file": "body_inline.wire.json",
+      "pre_jcs_body_bytes": 4194304,
+      "expected_bytes": 4194299,
+      "expected_sha256": "654bb327f51438094d9eb5de1b03c707bb1af6ffbdcd02af88d4532b581bb111"
+    },
+    {
+      "name": "body_size_above",
+      "input": {
+        "events": [
+          "{\"name\":\"fixture/empty\",\"data\":{}}"
+        ],
+        "steps": {
+          "large": "{\"data\":\"@@PADDING@@<\"}"
+        },
+        "stack": [
+          "large"
+        ],
+        "state_size": 0,
+        "request_version": -1
+      },
+      "recipes": {
+        "@@PADDING@@": {
+          "ascii": "x",
+          "count": 4193848
+        }
+      },
+      "expected_file": "body_size_above.wire.json",
+      "pre_jcs_body_bytes": 4194305,
+      "expected_bytes": 386,
+      "expected_sha256": "50d5f935025e04f6688ac4d02003fce767d426d931ac6c2cd0dba5553be9d689"
+    },
+    {
+      "name": "event_batch_fallback",
+      "input": {
+        "events": [
+          "{\"name\":\"fixture/empty\",\"data\":{\"payload\":\"@@EVENT@@\"}}"
+        ],
+        "steps": {},
+        "stack": null,
+        "state_size": 0,
+        "request_version": -1
+      },
+      "recipes": {
+        "@@EVENT@@": {
+          "ascii": "x",
+          "count": 2097152
+        }
+      },
+      "expected_file": "event_batch_fallback.wire.json",
+      "expected_bytes": 2097543,
+      "expected_sha256": "626afb00b1e452032ff28bb7f77a1bc63282039a6068023f17b5779f0ef3b6d0"
+    }
+  ]
+}
