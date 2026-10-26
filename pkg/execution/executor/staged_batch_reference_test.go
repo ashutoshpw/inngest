@@ -20,6 +20,7 @@ import (
 	"github.com/inngest/inngest/pkg/logger"
 	"github.com/inngest/inngest/pkg/tracing"
 	"github.com/inngest/inngest/pkg/tracing/meta"
+	"github.com/inngest/inngest/pkg/tracing/metadata"
 	"github.com/jonboulle/clockwork"
 	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/require"
@@ -36,6 +37,7 @@ type stagedBatchStore struct {
 	*opcodePlanRecordingRunService
 	mu            sync.Mutex
 	writes        map[string]string
+	saveDeltas    map[string]int
 	outcomes      map[string]stagedSaveOutcome
 	metadataErr   error
 	afterMetadata func()
@@ -49,12 +51,13 @@ func (s *stagedBatchStore) UpdateMetadata(ctx context.Context, id sv2.ID, update
 	}
 	return s.metadataErr
 }
-func (s *stagedBatchStore) SaveStep(_ context.Context, _ sv2.ID, id string, output []byte) (bool, error) {
+func (s *stagedBatchStore) SaveStep(ctx context.Context, _ sv2.ID, id string, output []byte) (bool, error) {
 	if s.beforeSave != nil {
 		s.beforeSave(id)
 	}
 	s.mu.Lock()
 	s.writes[id] = string(output)
+	s.saveDeltas[id] = state.MetadataSizeDeltaFromContext(ctx)
 	result := s.outcomes[id]
 	s.mu.Unlock()
 	s.events.record("handler:save:" + id)
@@ -108,7 +111,7 @@ func (l *stagedBatchLifecycle) OnSleep(_ context.Context, _ sv2.Metadata, _ queu
 func newStagedBatch(t *testing.T, ops ...*state.GeneratorOpcode) (*executor, *runInstance, *stagedBatchStore, *stagedBatchQueue, *opcodePlanEvents) {
 	t.Helper()
 	events := &opcodePlanEvents{}
-	store := &stagedBatchStore{opcodePlanRecordingRunService: &opcodePlanRecordingRunService{events: events}, writes: map[string]string{}, outcomes: map[string]stagedSaveOutcome{}}
+	store := &stagedBatchStore{opcodePlanRecordingRunService: &opcodePlanRecordingRunService{events: events}, writes: map[string]string{}, saveDeltas: map[string]int{}, outcomes: map[string]stagedSaveOutcome{}}
 	q := &stagedBatchQueue{events: events}
 	e := &executor{smv2: store, queue: q, clock: clockwork.NewFakeClockAt(time.Date(2026, 10, 26, 12, 0, 0, 0, time.UTC)), log: logger.VoidLogger(), tracerProvider: tracing.NewNoopTracerProvider(), syncLifecycles: []execution.SyncLifecycleListener{&stagedBatchLifecycle{events: events}}}
 	max := 3
@@ -140,9 +143,11 @@ func TestStagedBatchOutputAndSaveAuthority(t *testing.T) {
 		{name: "successful-save-pending", op: state.GeneratorOpcode{Op: enums.OpcodeStepRun, ID: "s"}, outcome: stagedSaveOutcome{pending: true}, writes: map[string]string{"s": `{"data":null}`}, events: []string{"handler:save:s", "finished:s", "scheduled:edge:<nil>:0"}},
 		{name: "successful-duplicate-continues", op: state.GeneratorOpcode{Op: enums.OpcodeStepRun, ID: "s"}, outcome: stagedSaveOutcome{err: state.ErrDuplicateResponse}, writes: map[string]string{"s": `{"data":null}`}, events: []string{"handler:save:s", "finished:s", "handler:enqueue:s", "scheduled:edge:<nil>:0"}},
 		{name: "successful-idempotent-retains-pending", op: state.GeneratorOpcode{Op: enums.OpcodeStepRun, ID: "s"}, outcome: stagedSaveOutcome{pending: true, err: state.ErrIdempotentResponse}, writes: map[string]string{"s": `{"data":null}`}, events: []string{"handler:save:s", "finished:s", "scheduled:edge:<nil>:0"}},
+		{name: "successful-wrapped-duplicate-retains-pending", op: state.GeneratorOpcode{Op: enums.OpcodeStepRun, ID: "s"}, outcome: stagedSaveOutcome{pending: true, err: fmt.Errorf("save transport: %w", state.ErrDuplicateResponse)}, writes: map[string]string{"s": `{"data":null}`}, events: []string{"handler:save:s", "finished:s", "scheduled:edge:<nil>:0"}},
 		{name: "save-failure-blocks-lifecycle", op: state.GeneratorOpcode{Op: enums.OpcodeStepRun, ID: "s"}, outcome: stagedSaveOutcome{err: context.Canceled}, writes: map[string]string{"s": `{"data":null}`}, events: []string{"handler:save:s"}, wantErr: true},
 		{name: "permanent-failure", op: state.GeneratorOpcode{Op: enums.OpcodeStepFailed, ID: "s", Error: userErr}, writes: map[string]string{"s": `{"error":{"name":"Error","message":"boom"}}`}, events: []string{"handler:save:s", "failed:s:Failed:1", "handler:enqueue:s", "scheduled:edge-error:<nil>:0"}},
 		{name: "permanent-duplicate-is-error", op: state.GeneratorOpcode{Op: enums.OpcodeStepFailed, ID: "s", Error: userErr}, outcome: stagedSaveOutcome{err: state.ErrDuplicateResponse}, writes: map[string]string{"s": `{"error":{"name":"Error","message":"boom"}}`}, events: []string{"handler:save:s"}, wantErr: true},
+		{name: "permanent-wrapped-duplicate-retains-identity", op: state.GeneratorOpcode{Op: enums.OpcodeStepFailed, ID: "s", Error: userErr}, outcome: stagedSaveOutcome{pending: true, err: fmt.Errorf("save transport: %w", state.ErrDuplicateResponse)}, writes: map[string]string{"s": `{"error":{"name":"Error","message":"boom"}}`}, events: []string{"handler:save:s"}, wantErr: true},
 		{name: "permanent-idempotent-continues", op: state.GeneratorOpcode{Op: enums.OpcodeStepFailed, ID: "s", Error: userErr}, outcome: stagedSaveOutcome{err: state.ErrIdempotentResponse}, writes: map[string]string{"s": `{"error":{"name":"Error","message":"boom"}}`}, events: []string{"handler:save:s", "failed:s:Failed:1", "handler:enqueue:s", "scheduled:edge-error:<nil>:0"}},
 		{name: "permanent-pending", op: state.GeneratorOpcode{Op: enums.OpcodeStepFailed, ID: "s", Error: userErr}, outcome: stagedSaveOutcome{pending: true}, writes: map[string]string{"s": `{"error":{"name":"Error","message":"boom"}}`}, events: []string{"handler:save:s", "failed:s:Failed:1", "scheduled:edge-error:<nil>:0"}},
 		{name: "retryable-error-no-save", op: state.GeneratorOpcode{Op: enums.OpcodeStepError, ID: "s", Name: "retry", Error: userErr}, writes: map[string]string{}, events: []string{"failed:s:Errored:1", "scheduled::retry:2"}, wantErr: true},
@@ -156,6 +161,9 @@ func TestStagedBatchOutputAndSaveAuthority(t *testing.T) {
 			err := e.HandleGeneratorResponse(context.Background(), i, i.resp)
 			if tc.wantErr {
 				require.Error(t, err)
+				if tc.outcome.err != nil {
+					require.Same(t, tc.outcome.err, err, "rejected saves retain the original error, including wrapping")
+				}
 			} else {
 				require.NoError(t, err)
 			}
@@ -179,6 +187,79 @@ func TestStagedBatchOutputAndSaveAuthority(t *testing.T) {
 				require.Zero(t, call.item.Attempt)
 				requireStagedQueueBindings(t, call)
 			}
+		})
+	}
+}
+
+func TestStagedBatchStateOverflowPrecedesRetryPreferences(t *testing.T) {
+	e, i, s, q, events := newStagedBatch(t, &state.GeneratorOpcode{Op: enums.OpcodeStepRun, ID: "s"})
+	overflow := fmt.Errorf("save transport: %w", state.ErrStateOverflowed)
+	s.outcomes["s"] = stagedSaveOutcome{err: overflow}
+	i.resp.NoRetry = true
+	retryAt := time.Date(2026, 10, 26, 13, 0, 0, 0, time.UTC)
+	i.resp.RetryAt = &retryAt
+	require.Same(t, overflow, e.HandleGeneratorResponse(context.Background(), i, i.resp))
+	require.Equal(t, []string{"handler:save:s"}, events.snapshot())
+	require.Empty(t, q.calls)
+}
+
+func TestStagedBatchGroupErrorNoRetryPrecedesRetryAt(t *testing.T) {
+	e, i, s, q, events := newStagedBatch(t, &state.GeneratorOpcode{Op: enums.OpcodeStepRun, ID: "s"})
+	s.outcomes["s"] = stagedSaveOutcome{err: fmt.Errorf("save unavailable")}
+	i.resp.NoRetry = true
+	retryAt := time.Date(2026, 10, 26, 13, 0, 0, 0, time.UTC)
+	i.resp.RetryAt = &retryAt
+
+	err := e.HandleGeneratorResponse(context.Background(), i, i.resp)
+	require.False(t, queue.ShouldRetry(err, 0, 3), "response NoRetry wins over RetryAt for an ordinary group error")
+	require.Nil(t, queue.AsRetryAtError(err))
+	// NeverRetryError forwards the cause's message but does not implement Unwrap.
+	require.EqualError(t, err, "save unavailable")
+	require.Equal(t, []string{"handler:save:s"}, events.snapshot())
+	require.Empty(t, q.calls)
+}
+
+func TestStagedBatchMetadataDeltaReachesSave(t *testing.T) {
+	for _, op := range []enums.Opcode{enums.OpcodeStepRun, enums.OpcodeStepFailed} {
+		t.Run(op.String(), func(t *testing.T) {
+			g := &state.GeneratorOpcode{Op: op, ID: "s", Error: &state.UserError{Name: "E", Message: "x"}, Metadata: []metadata.ScopedUpdate{
+				stepMetadataUpdate("userland.custom", metadata.Values{"k": json.RawMessage(`"v"`)}),
+			}}
+			e, i, s, _, _ := newStagedBatch(t, g)
+			i.md.Metrics.MetadataSize = 11
+			i.md.Metrics.MetadataSizeLoaded = 7
+			require.NoError(t, e.HandleGeneratorResponse(context.Background(), i, i.resp))
+			// Four previously unpersisted bytes plus the emitted metadata's
+			// one-byte key and three-byte JSON value must reach the store.
+			require.Equal(t, map[string]int{"s": 8}, s.saveDeltas)
+		})
+	}
+}
+
+func TestStagedBatchDiscoveryParallelModeAuthority(t *testing.T) {
+	for _, tc := range []struct {
+		name                string
+		op                  enums.Opcode
+		opRace, contextRace bool
+		enqueues            int
+	}{
+		{"success-uses-opcode-race", enums.OpcodeStepRun, true, false, 1},
+		{"success-ignores-context-race", enums.OpcodeStepRun, false, true, 0},
+		{"failure-ignores-opcode-race", enums.OpcodeStepFailed, true, false, 0},
+		{"failure-uses-context-race", enums.OpcodeStepFailed, false, true, 1},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			g := &state.GeneratorOpcode{Op: tc.op, ID: "s", Error: &state.UserError{Name: "E", Message: "x"}}
+			if tc.opRace {
+				g.Opts = map[string]any{"parallelMode": "race"}
+			}
+			e, i, s, q, _ := newStagedBatch(t, g)
+			if tc.contextRace {
+				i.item.ParallelMode = enums.ParallelModeRace
+			}
+			s.outcomes["s"] = stagedSaveOutcome{pending: true}
+			require.NoError(t, e.HandleGeneratorResponse(context.Background(), i, i.resp))
+			require.Len(t, q.calls, tc.enqueues)
 		})
 	}
 }

@@ -1,4 +1,11 @@
-# Staged batch Go reference (bounded, accepted; extraction pending)
+# Staged batch Go reference (bounded, accepted; response-owner extraction accepted separately)
+
+Subsequent authorized work: the [bounded Go response-owner extraction](response-owner-extraction.md)
+records the first production seam, accepted after independent review. The current
+future Rust candidate excludes Sleep: only None/Step/StepRun/StepError/StepFailed/
+StepPlanned qualify, with any excluded/invalid descriptor retaining the whole
+batch in Go. Sleep remains in this historical corpus as a Go regression witness.
+The original component-cost STOP and absolute-sleep clock gap below remain.
 
 Production source baseline: `dfe2fd0663b9cf7e0675e965977a3300a5da01c4` (PR #7);
 final integration base `77c3c2363e07fb1e7077481241da04da0fe0f70c` (PR #8),
@@ -389,6 +396,6 @@ Phase 1 remains partial, Phase 2 open, bridge unset.
 
 Broad Phase 1 remains partial, Phase 2 open, bridge unset. This is an accepted
 bounded Go reference and decomposition handoff, not approval to migrate the
-owner. A future Rust-owned continuation with Go effect ports requires a
-separately implemented and reviewed Go response-owner extraction; no such
-extraction is included here.
+owner. The accepted Go response-owner extraction is a separate increment; retryable
+and planned sequencing, finer queue ports, and the later Rust continuation remain
+open. No Rust activation or bridge selection follows from either increment.
