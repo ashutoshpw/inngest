@@ -10,6 +10,9 @@ import (
 
 func opcodeSpikeFFIEnabled() bool { return true }
 
-func opcodeSpikeEvaluateFFI(ctx context.Context, tags []opcodespike.Tag, requestID uint64) (opcodespike.Projection, error) {
+func opcodeSpikeEvaluateFFI(ctx context.Context, tags []opcodespike.Tag, requestID uint64, direct bool) (opcodespike.Projection, error) {
+	if direct {
+		return opcodespike.EvaluateDirectFFI(ctx, tags, requestID)
+	}
 	return opcodespike.EvaluateFFI(ctx, tags, requestID)
 }
