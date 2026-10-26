@@ -113,10 +113,13 @@ Go microbenchmark are accepted after a fresh Sol-high review found no blockers;
 the three P2 findings from the first review were fixed. The SDK request
 wire/replay-shaped input corpus is accepted after independent Luna review found
 no blockers and the malformed-case and reset-overhead-label findings were fixed.
-These are Go reference baselines, not evidence of Rust parity. See the linked
-evidence above for fixture scope, review, and validation results.
+A partial CEL/SQL Go oracle now records versioned evaluator cases and prepared
+SQLite/Postgres filter fragments; its authoring rationale and validation are in
+the [CEL/SQL compatibility baseline](cel-sql-compatibility.md). These are Go
+reference baselines, not evidence of Rust parity. See the linked evidence above
+for fixture scope, review, and validation results.
 
-## Remaining phase 1 corpus
+## Remaining phase 1 Go baseline
 
 - **SDK response/replay:** pair the now-pinned `MarshalV1` requests with SDK
   generator responses and verify replayed step/hash state, including agreed
@@ -124,10 +127,15 @@ evidence above for fixture scope, review, and validation results.
   canonical bytes, replay-shaped stack inputs, request/hash versions, defer
   abortability, and size fallbacks; supported minimum SDK versions remain
   unconfirmed.
-- **CEL:** portable JSON vectors for match/no-match, missing/null/nested values,
-  numeric and truthy coercion, custom functions, partial/unknown inputs, and
-  errors. Pair SQL-producing cases with SQLite and Postgres query/argument
-  expectations; runtime CEL parity alone is incomplete.
+- **CEL:** the new [CEL/SQL compatibility baseline](cel-sql-compatibility.md)
+  covers a small portable vector set for missing/null/nested values, numeric and
+  truthy coercion, a custom function, partial/unknown evaluation, errors, event
+  matching, and SQLite/Postgres filter fragments and arguments. Broader Go-side
+  CEL/SQL coverage and database-server semantics remain open.
+  Validate the rendered SQL behavior against the supported SQLite/PostgreSQL
+  versions as part of the Go reference baseline. Rust fixture consumption and
+  differential parity are Phase 4 work after the bridge spike and first Rust
+  slice; they are not Phase 1 entry gates.
 - **Queue/state:** stable persisted run metadata and queue-item JSON, IDs and
   Redis key/TTL/Lua behavior; then cover idempotent duplicate enqueue, lease
   expiry/recovery, priority wait/defer, backlog and reservation contention,
@@ -140,10 +148,11 @@ evidence above for fixture scope, review, and validation results.
   do not specify exactly-once execution.
 - **Performance:** benchmark matching Go workloads for opcode planning, SDK
   encoding, CEL, and queue/state operations, with fixed inputs and recorded Go
-  version, CPU/OS, database/server, flags, and fixture size. `go test -bench`
-  provides ns/op, throughput, and allocations; a separate matched-load harness
-  is needed for p95, peak memory, and end-to-end bridge cost. Keep proposed
-  thresholds provisional until these measurements exist.
+  version, CPU/OS, database/server, flags, and fixture size. These are initial
+  Go baselines for Phase 1. `go test -bench` provides ns/op, throughput, and
+  allocations; matched Go/Rust/bridge comparisons and a matched-load harness for
+  p95, peak memory, and end-to-end bridge cost follow in Phases 2–4. Keep
+  proposed thresholds provisional until those measurements exist.
 
 ## Suggested commands and local prerequisites
 

@@ -1,0 +1,140 @@
+{
+  "format": "inngest.cel-sql.compatibility",
+  "version": 1,
+  "provenance": "Hand-authored portable vectors grounded in pkg/run/cel.go, pkg/run/cel_sql.go, and the existing converter behavior tables. SQL fragments and arguments are literal reviewed expectations, not generated at test time.",
+  "normalization": {
+    "event": "Event JSON is decoded by the Go event type. The fixtures use deterministic event names and data only; no timestamps or generated IDs affect matching.",
+    "sql": "Each expected fragment is the literal WHERE clause from a prepared query. SQLite uses the sqlite3 Goqu dialect and question-mark placeholders; PostgreSQL uses dollar-number placeholders.",
+    "arguments": "Bound argument order is contractual. JSON numeric arguments compare as JSON numbers, so Go integer width and other language-specific numeric representations are normalized; strings and booleans remain typed values.",
+    "database": "These vectors validate CEL matching and generated SQL fragments only. They do not execute a SQLite or PostgreSQL server query."
+  },
+  "cases": [
+    {
+      "id": "event-name-filter-no-match",
+      "expression": "event.name == \"app/created\"",
+      "event": {
+        "name": "app/other",
+        "data": {}
+      },
+      "expected_match": false,
+      "sql": {
+        "sqlite": {
+          "supported": true,
+          "filter": "WHERE (`event_name` = ?)",
+          "args": [
+            "app/created"
+          ]
+        },
+        "postgres": {
+          "supported": true,
+          "filter": "WHERE (\"event_name\" = $1)",
+          "args": [
+            "app/created"
+          ]
+        }
+      }
+    },
+    {
+      "id": "nested-numeric-comparison",
+      "expression": "event.data.profile.age >= 21",
+      "event": {
+        "name": "app/created",
+        "data": {
+          "profile": {
+            "age": 21
+          }
+        }
+      },
+      "expected_match": true,
+      "sql": {
+        "sqlite": {
+          "supported": true,
+          "filter": "WHERE (CAST(json_extract(NULLIF(events.event_data, ''), '$.profile.age') AS NUMERIC) >= ?)",
+          "args": [
+            21
+          ]
+        },
+        "postgres": {
+          "supported": true,
+          "filter": "WHERE (((NULLIF(events.event_data, '')::jsonb)#>>'{profile,age}')::numeric >= $1)",
+          "args": [
+            21
+          ]
+        }
+      }
+    },
+    {
+      "id": "boolean-literal-conversion",
+      "expression": "event.data.active == true",
+      "event": {
+        "name": "app/created",
+        "data": {
+          "active": true
+        }
+      },
+      "expected_match": true,
+      "sql": {
+        "sqlite": {
+          "supported": true,
+          "filter": "WHERE (json_extract(NULLIF(events.event_data, ''), '$.active') = ?)",
+          "args": [
+            1
+          ]
+        },
+        "postgres": {
+          "supported": true,
+          "filter": "WHERE ((NULLIF(events.event_data, '')::jsonb)#>>'{active}' = $1)",
+          "args": [
+            "true"
+          ]
+        }
+      }
+    },
+    {
+      "id": "explicit-json-null-conversion",
+      "expression": "event.data.deleted == null",
+      "event": {
+        "name": "app/created",
+        "data": {
+          "deleted": null
+        }
+      },
+      "expected_match": true,
+      "sql": {
+        "sqlite": {
+          "supported": true,
+          "filter": "WHERE (json_type(NULLIF(events.event_data, ''), '$.deleted') = ?)",
+          "args": [
+            "null"
+          ]
+        },
+        "postgres": {
+          "supported": true,
+          "filter": "WHERE (jsonb_typeof((NULLIF(events.event_data, '')::jsonb)#>'{deleted}') = $1)",
+          "args": [
+            "null"
+          ]
+        }
+      }
+    },
+    {
+      "id": "unsupported-string-ordering-filter",
+      "expression": "event.data.name > \"x\"",
+      "event": {
+        "name": "app/created",
+        "data": {
+          "name": "z"
+        }
+      },
+      "expected_match": true,
+      "sql": {
+        "sqlite": {
+          "supported": false
+        },
+        "postgres": {
+          "supported": false
+        }
+      }
+    }
+  ]
+}
