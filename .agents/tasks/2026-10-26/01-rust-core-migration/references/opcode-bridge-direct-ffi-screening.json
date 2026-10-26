@@ -14944,5 +14944,24 @@
     "phase2": "open",
     "productionBridge": "unset",
     "productionWiring": false
+  },
+  "delivery": {
+    "repository": "ashutoshpw/inngest",
+    "pullRequestNumber": 8,
+    "pullRequestURL": "https://github.com/ashutoshpw/inngest/pull/8",
+    "title": "feat(execution): add direct-buffer Rust FFI experiment",
+    "headBranch": "t3/direct-buffer-ffi",
+    "baseBranch": "t3/opcode-bridge-spike",
+    "parentPullRequestNumber": 7,
+    "headSHAAtOpening": "06d122eefde2d96a2b81a26577900eb9f89bafc1",
+    "openingSnapshot": {
+      "state": "open",
+      "draft": false,
+      "mergeableState": "clean",
+      "reviewCount": 0,
+      "checkRunCount": 0
+    },
+    "linkedToParentAndDeliveryThreads": true,
+    "metadataFollowupAdvancesHead": true
   }
 }
