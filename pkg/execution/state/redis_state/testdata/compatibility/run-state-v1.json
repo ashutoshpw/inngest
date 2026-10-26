@@ -1,0 +1,119 @@
+{
+  "formatVersion": 1,
+  "provenance": "Literal contract for run state created by redis_state.New and rehydrated by redis_state.Load.",
+  "normalization": "IDs and scheduledAtMs are fixed. Redis hash field ordering is ignored; id and ctx hash values contain JSON text and are compared structurally.",
+  "input": {
+    "identifier": {
+      "runID": "01ARZ3NDEKTSV4RRFFQ69G5FB3",
+      "wID": "44444444-4444-4444-8444-444444444444",
+      "wv": 19,
+      "evtID": "01ARZ3NDEKTSV4RRFFQ69G5FB4",
+      "eventIDs": ["01ARZ3NDEKTSV4RRFFQ69G5FB4"],
+      "aID": "11111111-1111-4111-8111-111111111111",
+      "wsID": "22222222-2222-4222-8222-222222222222",
+      "appID": "33333333-3333-4333-8333-333333333333"
+    },
+    "events": [
+      {
+        "id": "01ARZ3NDEKTSV4RRFFQ69G5FB4",
+        "name": "run.created",
+        "data": {
+          "count": 2,
+          "optional": null
+        }
+      }
+    ],
+    "debugger": true,
+    "runType": "manual-retry",
+    "context": {
+      "attempt": 3,
+      "region": "us-east-1"
+    },
+    "spanID": "0123456789abcdef",
+    "requestVersion": 2,
+    "scheduledAtMs": 1760000005000,
+    "steps": [
+      {
+        "id": "step-1",
+        "data": {
+          "result": "ready",
+          "values": [1, 2]
+        }
+      }
+    ],
+    "stepInputs": [
+      {
+        "id": "input-1",
+        "data": {
+          "request": {
+            "customerId": "cust-9"
+          }
+        }
+      }
+    ]
+  },
+  "expectedRedis": {
+    "events": [
+      {
+        "id": "01ARZ3NDEKTSV4RRFFQ69G5FB4",
+        "name": "run.created",
+        "data": {
+          "count": 2,
+          "optional": null
+        }
+      }
+    ],
+    "metadata": {
+      "id": {
+        "runID": "01ARZ3NDEKTSV4RRFFQ69G5FB3",
+        "wID": "44444444-4444-4444-8444-444444444444",
+        "wv": 19,
+        "evtID": "01ARZ3NDEKTSV4RRFFQ69G5FB4",
+        "eventIDs": ["01ARZ3NDEKTSV4RRFFQ69G5FB4"],
+        "aID": "11111111-1111-4111-8111-111111111111",
+        "wsID": "22222222-2222-4222-8222-222222222222",
+        "appID": "33333333-3333-4333-8333-333333333333"
+      },
+      "status": "5",
+      "debugger": "true",
+      "runType": "manual-retry",
+      "version": "1",
+      "rv": "2",
+      "ctx": {
+        "attempt": 3,
+        "region": "us-east-1"
+      },
+      "sid": "0123456789abcdef",
+      "schat": "1760000005000"
+    },
+    "actions": {
+      "step-1": {
+        "result": "ready",
+        "values": [1, 2]
+      }
+    },
+    "stack": ["step-1"],
+    "actionInputs": {
+      "input-1": {
+        "request": {
+          "customerId": "cust-9"
+        }
+      }
+    }
+  },
+  "expectedLoaded": {
+    "actions": {
+      "step-1": {
+        "result": "ready",
+        "values": [1, 2]
+      },
+      "input-1": {
+        "input": {
+          "request": {
+            "customerId": "cust-9"
+          }
+        }
+      }
+    }
+  }
+}

@@ -35,6 +35,11 @@ go.work
 go.work.sum
 
 pkg/execution/state/redis_state/testdata
+# Keep versioned compatibility fixtures while ignoring generated test data.
+!pkg/execution/state/redis_state/testdata/
+pkg/execution/state/redis_state/testdata/*
+!pkg/execution/state/redis_state/testdata/compatibility/
+!pkg/execution/state/redis_state/testdata/compatibility/*.json
 .specify/
 specs/**
 .retrospeced/**

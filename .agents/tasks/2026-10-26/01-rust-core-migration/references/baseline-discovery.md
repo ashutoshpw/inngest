@@ -119,6 +119,18 @@ the [CEL/SQL compatibility baseline](cel-sql-compatibility.md). These are Go
 reference baselines, not evidence of Rust parity. See the linked evidence above
 for fixture scope, review, and validation results.
 
+Partial queue/state persistence coverage is accepted as stack layer 3 after
+independent Sol-high review found one P2 in loaded `PriorityFactor` and
+`ParallelCoalesceKey` assertions; those literal pointer expectations were added
+and revalidated with focused and race tests plus a targeted mutation probe. It
+pins three queue-item JSON cases through the Redis enqueue/store/load owner path
+and a bounded initial run-state New/store/Load sample. The fixture contract,
+audit rationale, validation, and microbenchmark are recorded in the
+[queue/state compatibility baseline](queue-state-compatibility.md). A separate
+process-restart/recovery witness is under independent review in worktree
+`t3/recovery-replay-witness`; it is not included in this layer. This layer does
+not cover real Redis/Valkey behavior or Rust parity.
+
 ## Remaining phase 1 Go baseline
 
 - **SDK response/replay:** pair the now-pinned `MarshalV1` requests with SDK
@@ -136,10 +148,12 @@ for fixture scope, review, and validation results.
   versions as part of the Go reference baseline. Rust fixture consumption and
   differential parity are Phase 4 work after the bridge spike and first Rust
   slice; they are not Phase 1 entry gates.
-- **Queue/state:** stable persisted run metadata and queue-item JSON, IDs and
-  Redis key/TTL/Lua behavior; then cover idempotent duplicate enqueue, lease
-  expiry/recovery, priority wait/defer, backlog and reservation contention,
-  semaphore release, and SQLite/Postgres schema compatibility.
+- **Queue/state:** the partial [queue/state compatibility baseline](queue-state-compatibility.md)
+  pins representative queue-item JSON and initial run-state values. Stable
+  persisted IDs beyond these cases, Redis key/TTL and real-server Lua behavior,
+  process restart/recovery, idempotent duplicate enqueue, lease expiry,
+  priority wait/defer, backlog and reservation contention, semaphore release,
+  and SQLite/Postgres schema compatibility remain open.
 - **Lifecycle/faults:** capture ordered observable effects for schedule, step
   discovery/fan-out, retry, pause/resume, cancellation, defer add/abort,
   completion/finalization, duplicate deliveries, shutdown/restart, and failures
