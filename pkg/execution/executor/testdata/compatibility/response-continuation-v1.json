@@ -1,0 +1,2917 @@
+{
+  "schemaVersion": 1,
+  "contract": "response-continuation-v1",
+  "source": {
+    "commit": "327acb5f22e4499cdfc4363b4465ce5ebb58d88d",
+    "files": [
+      "pkg/execution/executor/response_runner.go",
+      "pkg/execution/executor/response_effects.go",
+      "pkg/execution/executor/executor.go",
+      "pkg/execution/executor/util.go",
+      "pkg/execution/executor/run_context.go",
+      "pkg/execution/executor/force_step_plan.go"
+    ],
+    "provenance": "Manually authored from accepted Go owners and staged literals. Prepared bytes are independent Go preparation observations; expected writes/recipes/events are literal contracts, never captured at test time. Existing opcode-plan-v1.json owns grouping/hash vectors. Sibling event lists are multisets; before pairs are partial orders, never sibling launch order. Generated UUIDs are checked through queue/context/history relationships, not injected into Go."
+  },
+  "defaults": {
+    "storedVersion": 2,
+    "responseVersion": 2,
+    "attempt": 1,
+    "maxAttempts": 3,
+    "runId": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+    "idempotencyKey": "00000000-0000-0000-0000-000000000001:run-key",
+    "baseTime": "2026-10-26T12:00:00Z"
+  },
+  "cases": [
+    {
+      "name": "eligible-six-tags",
+      "ops": [
+        {
+          "op": "None",
+          "id": "none"
+        },
+        {
+          "op": "Step",
+          "id": "legacy",
+          "data": "{\"old\":true}",
+          "prepared": "{\"old\":true}",
+          "pending": true,
+          "prepareOp": "Step"
+        },
+        {
+          "op": "StepRun",
+          "id": "run",
+          "prepared": "{\"data\":null}",
+          "prepareOp": "StepRun"
+        },
+        {
+          "op": "StepError",
+          "id": "error",
+          "error": true,
+          "userNoRetry": true,
+          "prepared": "{\"error\":{\"name\":\"E\",\"message\":\"x\",\"noRetry\":true}}",
+          "pending": true,
+          "prepareOp": "StepFailed"
+        },
+        {
+          "op": "StepFailed",
+          "id": "failed",
+          "error": true,
+          "prepared": "{\"error\":{\"name\":\"E\",\"message\":\"x\"}}",
+          "prepareOp": "StepFailed"
+        },
+        {
+          "op": "StepPlanned",
+          "id": "planned",
+          "name": "plan"
+        }
+      ],
+      "expected": {
+        "events": [
+          "handler:save:legacy",
+          "finished:legacy",
+          "scheduled:edge:<nil>:0",
+          "handler:save:run",
+          "finished:run",
+          "handler:enqueue:run",
+          "scheduled:edge:<nil>:0",
+          "handler:save:error",
+          "failed:error:Failed:1",
+          "scheduled:edge-error:<nil>:0",
+          "handler:save:failed",
+          "failed:failed:Failed:1",
+          "handler:enqueue:failed",
+          "scheduled:edge-error:<nil>:0",
+          "handler:enqueue:previous",
+          "scheduled:edge:plan:0"
+        ],
+        "before": [
+          [
+            "handler:save:legacy",
+            "finished:legacy"
+          ],
+          [
+            "handler:save:run",
+            "finished:run"
+          ],
+          [
+            "finished:run",
+            "handler:enqueue:run"
+          ],
+          [
+            "handler:save:error",
+            "failed:error:Failed:1"
+          ],
+          [
+            "handler:save:failed",
+            "failed:failed:Failed:1"
+          ]
+        ],
+        "writes": {
+          "legacy": "{\"old\":true}",
+          "run": "{\"data\":null}",
+          "error": "{\"error\":{\"name\":\"E\",\"message\":\"x\",\"noRetry\":true}}",
+          "failed": "{\"error\":{\"name\":\"E\",\"message\":\"x\"}}"
+        },
+        "recipes": [
+          {
+            "kind": "edge",
+            "jobId": "00000000-0000-0000-0000-000000000001:run-key-run",
+            "incoming": "function",
+            "outgoing": "run",
+            "incomingGeneratorStep": "",
+            "incomingGeneratorStepName": "",
+            "atNs": 0,
+            "mode": "none",
+            "coalesceKey": "",
+            "attempt": 0,
+            "maxAttempts": 3,
+            "priority": 7,
+            "branch": 2,
+            "group": "discovery:2"
+          },
+          {
+            "kind": "edge-error",
+            "jobId": "00000000-0000-0000-0000-000000000001:run-key-failed-failure",
+            "incoming": "function",
+            "outgoing": "failed",
+            "incomingGeneratorStep": "",
+            "incomingGeneratorStepName": "",
+            "atNs": 0,
+            "mode": "none",
+            "coalesceKey": "",
+            "attempt": 0,
+            "maxAttempts": 3,
+            "priority": 7,
+            "branch": 4,
+            "group": "discovery:4"
+          },
+          {
+            "kind": "edge",
+            "jobId": "00000000-0000-0000-0000-000000000001:run-key-planned-plan",
+            "incoming": "function",
+            "outgoing": "previous",
+            "incomingGeneratorStep": "planned",
+            "incomingGeneratorStepName": "plan",
+            "atNs": -1000000,
+            "mode": "none",
+            "coalesceKey": "",
+            "attempt": 0,
+            "maxAttempts": 3,
+            "priority": 7,
+            "branch": 5,
+            "group": "planned:5"
+          }
+        ],
+        "metadata": [],
+        "pending": [],
+        "error": "none",
+        "policy": "original",
+        "errorContext": "original",
+        "uuidSites": {
+          "0": [
+            "history"
+          ],
+          "1": [
+            "history",
+            "discovery"
+          ],
+          "2": [
+            "history",
+            "discovery"
+          ],
+          "3": [
+            "history",
+            "discovery"
+          ],
+          "4": [
+            "history",
+            "discovery"
+          ],
+          "5": [
+            "history",
+            "planned"
+          ]
+        },
+        "scheduled": [
+          {
+            "branch": 1,
+            "name": null,
+            "group": "discovery:1",
+            "attempt": 0,
+            "payload": {
+              "kind": "edge",
+              "jobId": "00000000-0000-0000-0000-000000000001:run-key-legacy",
+              "incoming": "function",
+              "outgoing": "legacy",
+              "incomingGeneratorStep": "",
+              "incomingGeneratorStepName": "",
+              "mode": "none",
+              "coalesceKey": "",
+              "attempt": 0,
+              "maxAttempts": 3,
+              "priority": 7
+            }
+          },
+          {
+            "branch": 2,
+            "name": null,
+            "group": "discovery:2",
+            "attempt": 0,
+            "payload": {
+              "kind": "edge",
+              "jobId": "00000000-0000-0000-0000-000000000001:run-key-run",
+              "incoming": "function",
+              "outgoing": "run",
+              "incomingGeneratorStep": "",
+              "incomingGeneratorStepName": "",
+              "mode": "none",
+              "coalesceKey": "",
+              "attempt": 0,
+              "maxAttempts": 3,
+              "priority": 7
+            }
+          },
+          {
+            "branch": 3,
+            "name": null,
+            "group": "discovery:3",
+            "attempt": 0,
+            "payload": {
+              "kind": "edge-error",
+              "jobId": "00000000-0000-0000-0000-000000000001:run-key-error-failure",
+              "incoming": "function",
+              "outgoing": "error",
+              "incomingGeneratorStep": "",
+              "incomingGeneratorStepName": "",
+              "mode": "none",
+              "coalesceKey": "",
+              "attempt": 0,
+              "maxAttempts": 3,
+              "priority": 7
+            }
+          },
+          {
+            "branch": 4,
+            "name": null,
+            "group": "discovery:4",
+            "attempt": 0,
+            "payload": {
+              "kind": "edge-error",
+              "jobId": "00000000-0000-0000-0000-000000000001:run-key-failed-failure",
+              "incoming": "function",
+              "outgoing": "failed",
+              "incomingGeneratorStep": "",
+              "incomingGeneratorStepName": "",
+              "mode": "none",
+              "coalesceKey": "",
+              "attempt": 0,
+              "maxAttempts": 3,
+              "priority": 7
+            }
+          },
+          {
+            "branch": 5,
+            "name": "plan",
+            "group": "planned:5",
+            "attempt": 0,
+            "payload": {
+              "kind": "edge",
+              "jobId": "00000000-0000-0000-0000-000000000001:run-key-planned-plan",
+              "incoming": "function",
+              "outgoing": "previous",
+              "incomingGeneratorStep": "planned",
+              "incomingGeneratorStepName": "plan",
+              "mode": "none",
+              "coalesceKey": "",
+              "attempt": 0,
+              "maxAttempts": 3,
+              "priority": 7
+            }
+          }
+        ]
+      },
+      "storedVersion": 1,
+      "force": true
+    },
+    {
+      "name": "two-retrying-siblings",
+      "ops": [
+        {
+          "op": "StepError",
+          "id": "a",
+          "name": "A",
+          "error": true,
+          "prepareOp": "StepError"
+        },
+        {
+          "op": "StepError",
+          "id": "b",
+          "name": "B",
+          "error": true,
+          "prepareOp": "StepError"
+        }
+      ],
+      "expected": {
+        "events": [
+          "failed:a:Errored:1",
+          "scheduled::A:2",
+          "failed:b:Errored:1",
+          "scheduled::B:2"
+        ],
+        "before": [
+          [
+            "failed:a:Errored:1",
+            "scheduled::A:2"
+          ],
+          [
+            "failed:b:Errored:1",
+            "scheduled::B:2"
+          ]
+        ],
+        "writes": {},
+        "recipes": [],
+        "metadata": [],
+        "pending": [],
+        "error": "handled",
+        "policy": "original",
+        "errorContext": "original",
+        "uuidSites": {
+          "0": [
+            "history"
+          ],
+          "1": [
+            "history"
+          ]
+        },
+        "scheduled": [
+          {
+            "branch": 0,
+            "name": "A",
+            "group": "history:0",
+            "attempt": 2,
+            "payload": null
+          },
+          {
+            "branch": 1,
+            "name": "B",
+            "group": "history:1",
+            "attempt": 2,
+            "payload": null
+          }
+        ]
+      },
+      "force": true
+    },
+    {
+      "name": "success-pending-still-callbacks",
+      "ops": [
+        {
+          "op": "StepRun",
+          "id": "s",
+          "pending": true,
+          "prepared": "{\"data\":null}",
+          "prepareOp": "StepRun"
+        }
+      ],
+      "expected": {
+        "events": [
+          "handler:save:s",
+          "finished:s",
+          "scheduled:edge:<nil>:0"
+        ],
+        "before": [],
+        "writes": {
+          "s": "{\"data\":null}"
+        },
+        "recipes": [],
+        "metadata": [],
+        "pending": [],
+        "error": "none",
+        "policy": "original",
+        "lifecycleNs": [
+          1000000000
+        ],
+        "callbackNs": [
+          3000000000
+        ],
+        "clockCount": 4,
+        "errorContext": "original",
+        "uuidSites": {
+          "0": [
+            "discovery"
+          ]
+        },
+        "scheduled": [
+          {
+            "branch": 0,
+            "name": null,
+            "group": "discovery:0",
+            "attempt": 0,
+            "payload": {
+              "kind": "edge",
+              "jobId": "00000000-0000-0000-0000-000000000001:run-key-s",
+              "incoming": "function",
+              "outgoing": "s",
+              "incomingGeneratorStep": "",
+              "incomingGeneratorStepName": "",
+              "mode": "none",
+              "coalesceKey": "",
+              "attempt": 0,
+              "maxAttempts": 3,
+              "priority": 7
+            }
+          }
+        ]
+      },
+      "tick": true
+    },
+    {
+      "name": "success-recipe-clocks",
+      "ops": [
+        {
+          "op": "StepRun",
+          "id": "s",
+          "prepared": "{\"data\":null}",
+          "mode": "wait",
+          "prepareOp": "StepRun"
+        }
+      ],
+      "expected": {
+        "events": [
+          "handler:save:s",
+          "finished:s",
+          "handler:enqueue:s",
+          "scheduled:edge:<nil>:0"
+        ],
+        "before": [],
+        "writes": {
+          "s": "{\"data\":null}"
+        },
+        "recipes": [
+          {
+            "kind": "edge",
+            "jobId": "00000000-0000-0000-0000-000000000001:run-key-s",
+            "incoming": "function",
+            "outgoing": "s",
+            "incomingGeneratorStep": "",
+            "incomingGeneratorStepName": "",
+            "atNs": 2000000000,
+            "mode": "wait",
+            "coalesceKey": "",
+            "attempt": 0,
+            "maxAttempts": 3,
+            "priority": 7,
+            "branch": 0,
+            "group": "discovery:0"
+          }
+        ],
+        "metadata": [],
+        "pending": [],
+        "error": "none",
+        "policy": "original",
+        "lifecycleNs": [
+          1000000000
+        ],
+        "callbackNs": [
+          3000000000
+        ],
+        "clockCount": 4,
+        "afterEnqueueSpan": "send",
+        "errorContext": "original",
+        "uuidSites": {
+          "0": [
+            "discovery"
+          ]
+        },
+        "scheduled": [
+          {
+            "branch": 0,
+            "name": null,
+            "group": "discovery:0",
+            "attempt": 0,
+            "payload": {
+              "kind": "edge",
+              "jobId": "00000000-0000-0000-0000-000000000001:run-key-s",
+              "incoming": "function",
+              "outgoing": "s",
+              "incomingGeneratorStep": "",
+              "incomingGeneratorStepName": "",
+              "mode": "wait",
+              "coalesceKey": "",
+              "attempt": 0,
+              "maxAttempts": 3,
+              "priority": 7
+            }
+          }
+        ]
+      },
+      "tick": true
+    },
+    {
+      "name": "failure-recipe-clocks",
+      "ops": [
+        {
+          "op": "StepFailed",
+          "id": "s",
+          "error": true,
+          "prepared": "{\"error\":{\"name\":\"E\",\"message\":\"x\"}}",
+          "prepareOp": "StepFailed"
+        }
+      ],
+      "expected": {
+        "events": [
+          "handler:save:s",
+          "failed:s:Failed:1",
+          "handler:enqueue:s",
+          "scheduled:edge-error:<nil>:0"
+        ],
+        "before": [],
+        "writes": {
+          "s": "{\"error\":{\"name\":\"E\",\"message\":\"x\"}}"
+        },
+        "recipes": [
+          {
+            "kind": "edge-error",
+            "jobId": "00000000-0000-0000-0000-000000000001:run-key-s-failure",
+            "incoming": "function",
+            "outgoing": "s",
+            "incomingGeneratorStep": "",
+            "incomingGeneratorStepName": "",
+            "atNs": 2000000000,
+            "mode": "none",
+            "coalesceKey": "",
+            "attempt": 0,
+            "maxAttempts": 3,
+            "priority": 7,
+            "branch": 0,
+            "group": "discovery:0"
+          }
+        ],
+        "metadata": [],
+        "pending": [],
+        "error": "none",
+        "policy": "original",
+        "lifecycleNs": [
+          1000000000
+        ],
+        "callbackNs": [
+          3000000000
+        ],
+        "clockCount": 4,
+        "afterEnqueueSpan": "send",
+        "errorContext": "original",
+        "uuidSites": {
+          "0": [
+            "discovery"
+          ]
+        },
+        "scheduled": [
+          {
+            "branch": 0,
+            "name": null,
+            "group": "discovery:0",
+            "attempt": 0,
+            "payload": {
+              "kind": "edge-error",
+              "jobId": "00000000-0000-0000-0000-000000000001:run-key-s-failure",
+              "incoming": "function",
+              "outgoing": "s",
+              "incomingGeneratorStep": "",
+              "incomingGeneratorStepName": "",
+              "mode": "none",
+              "coalesceKey": "",
+              "attempt": 0,
+              "maxAttempts": 3,
+              "priority": 7
+            }
+          }
+        ]
+      },
+      "tick": true
+    },
+    {
+      "name": "planned-display-clocks",
+      "ops": [
+        {
+          "op": "StepPlanned",
+          "id": "s",
+          "name": "sdk-name",
+          "displayName": "display",
+          "mode": "race"
+        }
+      ],
+      "expected": {
+        "events": [
+          "handler:enqueue:previous",
+          "scheduled:edge:sdk-name:0"
+        ],
+        "before": [],
+        "writes": {},
+        "recipes": [
+          {
+            "kind": "edge",
+            "jobId": "00000000-0000-0000-0000-000000000001:run-key-s-plan",
+            "incoming": "function",
+            "outgoing": "previous",
+            "incomingGeneratorStep": "s",
+            "incomingGeneratorStepName": "display",
+            "atNs": 999000000,
+            "mode": "race",
+            "coalesceKey": "",
+            "attempt": 0,
+            "maxAttempts": 3,
+            "priority": 7,
+            "branch": 0,
+            "group": "planned:0"
+          }
+        ],
+        "metadata": [],
+        "pending": [],
+        "error": "none",
+        "policy": "original",
+        "callbackNs": [
+          2000000000
+        ],
+        "clockCount": 3,
+        "afterEnqueueSpan": "send",
+        "errorContext": "original",
+        "uuidSites": {
+          "0": [
+            "planned"
+          ]
+        },
+        "scheduled": [
+          {
+            "branch": 0,
+            "name": "sdk-name",
+            "group": "planned:0",
+            "attempt": 0,
+            "payload": {
+              "kind": "edge",
+              "jobId": "00000000-0000-0000-0000-000000000001:run-key-s-plan",
+              "incoming": "function",
+              "outgoing": "previous",
+              "incomingGeneratorStep": "s",
+              "incomingGeneratorStepName": "display",
+              "mode": "race",
+              "coalesceKey": "",
+              "attempt": 0,
+              "maxAttempts": 3,
+              "priority": 7
+            }
+          }
+        ]
+      },
+      "tick": true
+    },
+    {
+      "name": "planned-ordinary-error-callbacks",
+      "ops": [
+        {
+          "op": "StepPlanned",
+          "id": "s",
+          "name": "plan"
+        }
+      ],
+      "expected": {
+        "events": [
+          "handler:enqueue:previous",
+          "scheduled:edge:plan:0"
+        ],
+        "before": [],
+        "writes": {},
+        "recipes": [
+          {
+            "kind": "edge",
+            "jobId": "00000000-0000-0000-0000-000000000001:run-key-s-plan",
+            "incoming": "function",
+            "outgoing": "previous",
+            "incomingGeneratorStep": "s",
+            "incomingGeneratorStepName": "plan",
+            "atNs": -1000000,
+            "mode": "none",
+            "coalesceKey": "",
+            "attempt": 0,
+            "maxAttempts": 3,
+            "priority": 7,
+            "branch": 0,
+            "group": "planned:0"
+          }
+        ],
+        "metadata": [],
+        "pending": [],
+        "error": "ordinary",
+        "policy": "never",
+        "afterEnqueueSpan": "send",
+        "errorContext": "original",
+        "uuidSites": {
+          "0": [
+            "planned"
+          ]
+        },
+        "scheduled": [
+          {
+            "branch": 0,
+            "name": "plan",
+            "group": "planned:0",
+            "attempt": 0,
+            "payload": {
+              "kind": "edge",
+              "jobId": "00000000-0000-0000-0000-000000000001:run-key-s-plan",
+              "incoming": "function",
+              "outgoing": "previous",
+              "incomingGeneratorStep": "s",
+              "incomingGeneratorStepName": "plan",
+              "mode": "none",
+              "coalesceKey": "",
+              "attempt": 0,
+              "maxAttempts": 3,
+              "priority": 7
+            }
+          }
+        ]
+      },
+      "queueError": "ordinary",
+      "noRetry": true,
+      "retryAtNs": 3600000000000
+    },
+    {
+      "name": "planned-retry-at",
+      "ops": [
+        {
+          "op": "StepPlanned",
+          "id": "s"
+        }
+      ],
+      "expected": {
+        "events": [
+          "handler:enqueue:previous",
+          "scheduled:edge::0"
+        ],
+        "before": [],
+        "writes": {},
+        "recipes": [
+          {
+            "kind": "edge",
+            "jobId": "00000000-0000-0000-0000-000000000001:run-key-s-plan",
+            "incoming": "function",
+            "outgoing": "previous",
+            "incomingGeneratorStep": "s",
+            "incomingGeneratorStepName": "",
+            "atNs": -1000000,
+            "mode": "none",
+            "coalesceKey": "",
+            "attempt": 0,
+            "maxAttempts": 3,
+            "priority": 7,
+            "branch": 0,
+            "group": "planned:0"
+          }
+        ],
+        "metadata": [],
+        "pending": [],
+        "error": "ordinary",
+        "policy": "at",
+        "afterEnqueueSpan": "send",
+        "errorContext": "original",
+        "uuidSites": {
+          "0": [
+            "planned"
+          ]
+        },
+        "scheduled": [
+          {
+            "branch": 0,
+            "name": "",
+            "group": "planned:0",
+            "attempt": 0,
+            "payload": {
+              "kind": "edge",
+              "jobId": "00000000-0000-0000-0000-000000000001:run-key-s-plan",
+              "incoming": "function",
+              "outgoing": "previous",
+              "incomingGeneratorStep": "s",
+              "incomingGeneratorStepName": "",
+              "mode": "none",
+              "coalesceKey": "",
+              "attempt": 0,
+              "maxAttempts": 3,
+              "priority": 7
+            }
+          }
+        ]
+      },
+      "queueError": "ordinary",
+      "retryAtNs": 3600000000000
+    },
+    {
+      "name": "success-discovery-error-always-before-callbacks",
+      "ops": [
+        {
+          "op": "StepRun",
+          "id": "s",
+          "prepared": "{\"data\":null}",
+          "prepareOp": "StepRun"
+        }
+      ],
+      "expected": {
+        "events": [
+          "handler:save:s",
+          "finished:s",
+          "handler:enqueue:s"
+        ],
+        "before": [],
+        "writes": {
+          "s": "{\"data\":null}"
+        },
+        "recipes": [
+          {
+            "kind": "edge",
+            "jobId": "00000000-0000-0000-0000-000000000001:run-key-s",
+            "incoming": "function",
+            "outgoing": "s",
+            "incomingGeneratorStep": "",
+            "incomingGeneratorStepName": "",
+            "atNs": 0,
+            "mode": "none",
+            "coalesceKey": "",
+            "attempt": 0,
+            "maxAttempts": 3,
+            "priority": 7,
+            "branch": 0,
+            "group": "discovery:0"
+          }
+        ],
+        "metadata": [],
+        "pending": [],
+        "error": "ordinary",
+        "policy": "always",
+        "afterEnqueueSpan": "drop",
+        "errorContext": "discovery",
+        "uuidSites": {
+          "0": [
+            "discovery"
+          ]
+        },
+        "scheduled": []
+      },
+      "queueError": "ordinary",
+      "noRetry": true,
+      "retryAtNs": 3600000000000
+    },
+    {
+      "name": "failure-discovery-error-always-before-callbacks",
+      "ops": [
+        {
+          "op": "StepFailed",
+          "id": "s",
+          "error": true,
+          "prepared": "{\"error\":{\"name\":\"E\",\"message\":\"x\"}}",
+          "prepareOp": "StepFailed"
+        }
+      ],
+      "expected": {
+        "events": [
+          "handler:save:s",
+          "failed:s:Failed:1",
+          "handler:enqueue:s"
+        ],
+        "before": [],
+        "writes": {
+          "s": "{\"error\":{\"name\":\"E\",\"message\":\"x\"}}"
+        },
+        "recipes": [
+          {
+            "kind": "edge-error",
+            "jobId": "00000000-0000-0000-0000-000000000001:run-key-s-failure",
+            "incoming": "function",
+            "outgoing": "s",
+            "incomingGeneratorStep": "",
+            "incomingGeneratorStepName": "",
+            "atNs": 0,
+            "mode": "none",
+            "coalesceKey": "",
+            "attempt": 0,
+            "maxAttempts": 3,
+            "priority": 7,
+            "branch": 0,
+            "group": "discovery:0"
+          }
+        ],
+        "metadata": [],
+        "pending": [],
+        "error": "ordinary",
+        "policy": "always",
+        "afterEnqueueSpan": "drop",
+        "errorContext": "discovery",
+        "uuidSites": {
+          "0": [
+            "discovery"
+          ]
+        },
+        "scheduled": []
+      },
+      "queueError": "ordinary",
+      "noRetry": true
+    },
+    {
+      "name": "StepRun-queue-duplicate",
+      "ops": [
+        {
+          "op": "StepRun",
+          "id": "s",
+          "error": false,
+          "prepared": "{\"data\":null}",
+          "prepareOp": "StepRun"
+        }
+      ],
+      "expected": {
+        "events": [
+          "handler:save:s",
+          "finished:s",
+          "handler:enqueue:s"
+        ],
+        "before": [],
+        "writes": {
+          "s": "{\"data\":null}"
+        },
+        "recipes": [
+          {
+            "kind": "edge",
+            "jobId": "00000000-0000-0000-0000-000000000001:run-key-s",
+            "incoming": "function",
+            "outgoing": "s",
+            "incomingGeneratorStep": "",
+            "incomingGeneratorStepName": "",
+            "atNs": 0,
+            "mode": "none",
+            "coalesceKey": "",
+            "attempt": 0,
+            "maxAttempts": 3,
+            "priority": 7,
+            "branch": 0,
+            "group": "discovery:0"
+          }
+        ],
+        "metadata": [],
+        "pending": [],
+        "error": "none",
+        "policy": "original",
+        "afterEnqueueSpan": "drop",
+        "errorContext": "original",
+        "uuidSites": {
+          "0": [
+            "discovery"
+          ]
+        },
+        "scheduled": []
+      },
+      "queueError": "queue-duplicate"
+    },
+    {
+      "name": "StepFailed-queue-duplicate",
+      "ops": [
+        {
+          "op": "StepFailed",
+          "id": "s",
+          "error": true,
+          "prepared": "{\"error\":{\"name\":\"E\",\"message\":\"x\"}}",
+          "prepareOp": "StepFailed"
+        }
+      ],
+      "expected": {
+        "events": [
+          "handler:save:s",
+          "failed:s:Failed:1",
+          "handler:enqueue:s"
+        ],
+        "before": [],
+        "writes": {
+          "s": "{\"error\":{\"name\":\"E\",\"message\":\"x\"}}"
+        },
+        "recipes": [
+          {
+            "kind": "edge-error",
+            "jobId": "00000000-0000-0000-0000-000000000001:run-key-s-failure",
+            "incoming": "function",
+            "outgoing": "s",
+            "incomingGeneratorStep": "",
+            "incomingGeneratorStepName": "",
+            "atNs": 0,
+            "mode": "none",
+            "coalesceKey": "",
+            "attempt": 0,
+            "maxAttempts": 3,
+            "priority": 7,
+            "branch": 0,
+            "group": "discovery:0"
+          }
+        ],
+        "metadata": [],
+        "pending": [],
+        "error": "none",
+        "policy": "original",
+        "afterEnqueueSpan": "drop",
+        "errorContext": "original",
+        "uuidSites": {
+          "0": [
+            "discovery"
+          ]
+        },
+        "scheduled": []
+      },
+      "queueError": "queue-duplicate"
+    },
+    {
+      "name": "planned-queue-duplicate",
+      "ops": [
+        {
+          "op": "StepPlanned",
+          "id": "s"
+        }
+      ],
+      "expected": {
+        "events": [
+          "handler:enqueue:previous"
+        ],
+        "before": [],
+        "writes": {},
+        "recipes": [
+          {
+            "kind": "edge",
+            "jobId": "00000000-0000-0000-0000-000000000001:run-key-s-plan",
+            "incoming": "function",
+            "outgoing": "previous",
+            "incomingGeneratorStep": "s",
+            "incomingGeneratorStepName": "",
+            "atNs": -1000000,
+            "mode": "none",
+            "coalesceKey": "",
+            "attempt": 0,
+            "maxAttempts": 3,
+            "priority": 7,
+            "branch": 0,
+            "group": "planned:0"
+          }
+        ],
+        "metadata": [],
+        "pending": [],
+        "error": "none",
+        "policy": "original",
+        "afterEnqueueSpan": "drop",
+        "errorContext": "original",
+        "uuidSites": {
+          "0": [
+            "planned"
+          ]
+        },
+        "scheduled": []
+      },
+      "queueError": "queue-duplicate"
+    },
+    {
+      "name": "success-wrapped-duplicate-pending",
+      "ops": [
+        {
+          "op": "StepRun",
+          "id": "s",
+          "prepared": "{\"data\":null}",
+          "pending": true,
+          "saveError": "wrapped-duplicate",
+          "prepareOp": "StepRun"
+        }
+      ],
+      "expected": {
+        "events": [
+          "handler:save:s",
+          "finished:s",
+          "scheduled:edge:<nil>:0"
+        ],
+        "before": [],
+        "writes": {
+          "s": "{\"data\":null}"
+        },
+        "recipes": [],
+        "metadata": [],
+        "pending": [],
+        "error": "none",
+        "policy": "original",
+        "errorContext": "original",
+        "uuidSites": {
+          "0": [
+            "discovery"
+          ]
+        },
+        "scheduled": [
+          {
+            "branch": 0,
+            "name": null,
+            "group": "discovery:0",
+            "attempt": 0,
+            "payload": {
+              "kind": "edge",
+              "jobId": "00000000-0000-0000-0000-000000000001:run-key-s",
+              "incoming": "function",
+              "outgoing": "s",
+              "incomingGeneratorStep": "",
+              "incomingGeneratorStepName": "",
+              "mode": "none",
+              "coalesceKey": "",
+              "attempt": 0,
+              "maxAttempts": 3,
+              "priority": 7
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "permanent-duplicate-rejected",
+      "ops": [
+        {
+          "op": "StepFailed",
+          "id": "s",
+          "error": true,
+          "prepared": "{\"error\":{\"name\":\"E\",\"message\":\"x\"}}",
+          "saveError": "wrapped-duplicate",
+          "prepareOp": "StepFailed"
+        }
+      ],
+      "expected": {
+        "events": [
+          "handler:save:s"
+        ],
+        "before": [],
+        "writes": {
+          "s": "{\"error\":{\"name\":\"E\",\"message\":\"x\"}}"
+        },
+        "recipes": [],
+        "metadata": [],
+        "pending": [],
+        "error": "wrapped-duplicate",
+        "policy": "original",
+        "errorContext": "original",
+        "uuidSites": {},
+        "scheduled": []
+      }
+    },
+    {
+      "name": "permanent-idempotent-pending",
+      "ops": [
+        {
+          "op": "StepFailed",
+          "id": "s",
+          "error": true,
+          "prepared": "{\"error\":{\"name\":\"E\",\"message\":\"x\"}}",
+          "saveError": "idempotent",
+          "pending": true,
+          "prepareOp": "StepFailed"
+        }
+      ],
+      "expected": {
+        "events": [
+          "handler:save:s",
+          "failed:s:Failed:1",
+          "scheduled:edge-error:<nil>:0"
+        ],
+        "before": [],
+        "writes": {
+          "s": "{\"error\":{\"name\":\"E\",\"message\":\"x\"}}"
+        },
+        "recipes": [],
+        "metadata": [],
+        "pending": [],
+        "error": "none",
+        "policy": "original",
+        "errorContext": "original",
+        "uuidSites": {
+          "0": [
+            "discovery"
+          ]
+        },
+        "scheduled": [
+          {
+            "branch": 0,
+            "name": null,
+            "group": "discovery:0",
+            "attempt": 0,
+            "payload": {
+              "kind": "edge-error",
+              "jobId": "00000000-0000-0000-0000-000000000001:run-key-s-failure",
+              "incoming": "function",
+              "outgoing": "s",
+              "incomingGeneratorStep": "",
+              "incomingGeneratorStepName": "",
+              "mode": "none",
+              "coalesceKey": "",
+              "attempt": 0,
+              "maxAttempts": 3,
+              "priority": 7
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "ordinary-save-no-retry-over-at",
+      "ops": [
+        {
+          "op": "StepRun",
+          "id": "s",
+          "prepared": "{\"data\":null}",
+          "saveError": "ordinary",
+          "prepareOp": "StepRun"
+        }
+      ],
+      "expected": {
+        "events": [
+          "handler:save:s"
+        ],
+        "before": [],
+        "writes": {
+          "s": "{\"data\":null}"
+        },
+        "recipes": [],
+        "metadata": [],
+        "pending": [],
+        "error": "ordinary",
+        "policy": "never",
+        "errorContext": "original",
+        "uuidSites": {},
+        "scheduled": []
+      },
+      "noRetry": true,
+      "retryAtNs": 3600000000000
+    },
+    {
+      "name": "state-overflow-before-policy",
+      "ops": [
+        {
+          "op": "StepRun",
+          "id": "s",
+          "prepared": "{\"data\":null}",
+          "saveError": "overflow",
+          "prepareOp": "StepRun"
+        }
+      ],
+      "expected": {
+        "events": [
+          "handler:save:s"
+        ],
+        "before": [],
+        "writes": {
+          "s": "{\"data\":null}"
+        },
+        "recipes": [],
+        "metadata": [],
+        "pending": [],
+        "error": "overflow",
+        "policy": "original",
+        "errorContext": "original",
+        "uuidSites": {},
+        "scheduled": []
+      },
+      "noRetry": true,
+      "retryAtNs": 3600000000000
+    },
+    {
+      "name": "reset-fails-after-accepted-save",
+      "ops": [
+        {
+          "op": "StepRun",
+          "id": "s",
+          "prepared": "{\"data\":null}",
+          "prepareOp": "StepRun"
+        }
+      ],
+      "expected": {
+        "events": [
+          "handler:save:s",
+          "finished:s",
+          "metadata_update"
+        ],
+        "before": [
+          [
+            "handler:save:s",
+            "finished:s"
+          ],
+          [
+            "finished:s",
+            "metadata_update"
+          ]
+        ],
+        "writes": {
+          "s": "{\"data\":null}"
+        },
+        "recipes": [],
+        "metadata": [
+          {
+            "requestVersion": 2,
+            "forceStepPlan": false,
+            "hasAI": false
+          }
+        ],
+        "pending": [],
+        "error": "reset",
+        "policy": "original",
+        "errorContext": "reset",
+        "uuidSites": {
+          "0": [
+            "discovery"
+          ]
+        },
+        "scheduled": []
+      },
+      "force": true,
+      "resetError": "reset"
+    },
+    {
+      "name": "success-opcode-race",
+      "ops": [
+        {
+          "op": "StepRun",
+          "id": "s",
+          "prepared": "{\"data\":null}",
+          "error": false,
+          "pending": true,
+          "mode": "race",
+          "prepareOp": "StepRun"
+        }
+      ],
+      "expected": {
+        "events": [
+          "handler:save:s",
+          "finished:s",
+          "handler:enqueue:s",
+          "scheduled:edge:<nil>:0"
+        ],
+        "before": [],
+        "writes": {
+          "s": "{\"data\":null}"
+        },
+        "recipes": [
+          {
+            "kind": "edge",
+            "jobId": "00000000-0000-0000-0000-000000000001:run-key-s",
+            "incoming": "function",
+            "outgoing": "s",
+            "incomingGeneratorStep": "",
+            "incomingGeneratorStepName": "",
+            "atNs": 0,
+            "mode": "race",
+            "coalesceKey": "",
+            "attempt": 0,
+            "maxAttempts": 3,
+            "priority": 7,
+            "branch": 0,
+            "group": "discovery:0"
+          }
+        ],
+        "metadata": [],
+        "pending": [],
+        "error": "none",
+        "policy": "original",
+        "errorContext": "original",
+        "uuidSites": {
+          "0": [
+            "discovery"
+          ]
+        },
+        "scheduled": [
+          {
+            "branch": 0,
+            "name": null,
+            "group": "discovery:0",
+            "attempt": 0,
+            "payload": {
+              "kind": "edge",
+              "jobId": "00000000-0000-0000-0000-000000000001:run-key-s",
+              "incoming": "function",
+              "outgoing": "s",
+              "incomingGeneratorStep": "",
+              "incomingGeneratorStepName": "",
+              "mode": "race",
+              "coalesceKey": "",
+              "attempt": 0,
+              "maxAttempts": 3,
+              "priority": 7
+            }
+          }
+        ]
+      },
+      "contextMode": "none"
+    },
+    {
+      "name": "success-ignores-context-race",
+      "ops": [
+        {
+          "op": "StepRun",
+          "id": "s",
+          "prepared": "{\"data\":null}",
+          "error": false,
+          "pending": true,
+          "mode": "none",
+          "prepareOp": "StepRun"
+        }
+      ],
+      "expected": {
+        "events": [
+          "handler:save:s",
+          "finished:s",
+          "scheduled:edge:<nil>:0"
+        ],
+        "before": [],
+        "writes": {
+          "s": "{\"data\":null}"
+        },
+        "recipes": [],
+        "metadata": [],
+        "pending": [],
+        "error": "none",
+        "policy": "original",
+        "errorContext": "original",
+        "uuidSites": {
+          "0": [
+            "discovery"
+          ]
+        },
+        "scheduled": [
+          {
+            "branch": 0,
+            "name": null,
+            "group": "discovery:0",
+            "attempt": 0,
+            "payload": {
+              "kind": "edge",
+              "jobId": "00000000-0000-0000-0000-000000000001:run-key-s",
+              "incoming": "function",
+              "outgoing": "s",
+              "incomingGeneratorStep": "",
+              "incomingGeneratorStepName": "",
+              "mode": "none",
+              "coalesceKey": "",
+              "attempt": 0,
+              "maxAttempts": 3,
+              "priority": 7
+            }
+          }
+        ]
+      },
+      "contextMode": "race"
+    },
+    {
+      "name": "failure-ignores-opcode-race",
+      "ops": [
+        {
+          "op": "StepFailed",
+          "id": "s",
+          "prepared": "{\"error\":{\"name\":\"E\",\"message\":\"x\"}}",
+          "error": true,
+          "pending": true,
+          "mode": "race",
+          "prepareOp": "StepFailed"
+        }
+      ],
+      "expected": {
+        "events": [
+          "handler:save:s",
+          "failed:s:Failed:1",
+          "scheduled:edge-error:<nil>:0"
+        ],
+        "before": [],
+        "writes": {
+          "s": "{\"error\":{\"name\":\"E\",\"message\":\"x\"}}"
+        },
+        "recipes": [],
+        "metadata": [],
+        "pending": [],
+        "error": "none",
+        "policy": "original",
+        "errorContext": "original",
+        "uuidSites": {
+          "0": [
+            "discovery"
+          ]
+        },
+        "scheduled": [
+          {
+            "branch": 0,
+            "name": null,
+            "group": "discovery:0",
+            "attempt": 0,
+            "payload": {
+              "kind": "edge-error",
+              "jobId": "00000000-0000-0000-0000-000000000001:run-key-s-failure",
+              "incoming": "function",
+              "outgoing": "s",
+              "incomingGeneratorStep": "",
+              "incomingGeneratorStepName": "",
+              "mode": "race",
+              "coalesceKey": "",
+              "attempt": 0,
+              "maxAttempts": 3,
+              "priority": 7
+            }
+          }
+        ]
+      },
+      "contextMode": "none"
+    },
+    {
+      "name": "failure-context-race",
+      "ops": [
+        {
+          "op": "StepFailed",
+          "id": "s",
+          "prepared": "{\"error\":{\"name\":\"E\",\"message\":\"x\"}}",
+          "error": true,
+          "pending": true,
+          "mode": "none",
+          "prepareOp": "StepFailed"
+        }
+      ],
+      "expected": {
+        "events": [
+          "handler:save:s",
+          "failed:s:Failed:1",
+          "handler:enqueue:s",
+          "scheduled:edge-error:<nil>:0"
+        ],
+        "before": [],
+        "writes": {
+          "s": "{\"error\":{\"name\":\"E\",\"message\":\"x\"}}"
+        },
+        "recipes": [
+          {
+            "kind": "edge-error",
+            "jobId": "00000000-0000-0000-0000-000000000001:run-key-s-failure",
+            "incoming": "function",
+            "outgoing": "s",
+            "incomingGeneratorStep": "",
+            "incomingGeneratorStepName": "",
+            "atNs": 0,
+            "mode": "none",
+            "coalesceKey": "",
+            "attempt": 0,
+            "maxAttempts": 3,
+            "priority": 7,
+            "branch": 0,
+            "group": "discovery:0"
+          }
+        ],
+        "metadata": [],
+        "pending": [],
+        "error": "none",
+        "policy": "original",
+        "errorContext": "original",
+        "uuidSites": {
+          "0": [
+            "discovery"
+          ]
+        },
+        "scheduled": [
+          {
+            "branch": 0,
+            "name": null,
+            "group": "discovery:0",
+            "attempt": 0,
+            "payload": {
+              "kind": "edge-error",
+              "jobId": "00000000-0000-0000-0000-000000000001:run-key-s-failure",
+              "incoming": "function",
+              "outgoing": "s",
+              "incomingGeneratorStep": "",
+              "incomingGeneratorStepName": "",
+              "mode": "none",
+              "coalesceKey": "",
+              "attempt": 0,
+              "maxAttempts": 3,
+              "priority": 7
+            }
+          }
+        ]
+      },
+      "contextMode": "race"
+    },
+    {
+      "name": "attempt-exhaustion",
+      "ops": [
+        {
+          "op": "StepError",
+          "id": "s",
+          "error": true,
+          "prepared": "{\"error\":{\"name\":\"E\",\"message\":\"x\"}}",
+          "prepareOp": "StepFailed"
+        }
+      ],
+      "expected": {
+        "events": [
+          "handler:save:s",
+          "failed:s:Failed:2",
+          "handler:enqueue:s",
+          "scheduled:edge-error:<nil>:0"
+        ],
+        "before": [],
+        "writes": {
+          "s": "{\"error\":{\"name\":\"E\",\"message\":\"x\"}}"
+        },
+        "recipes": [
+          {
+            "kind": "edge-error",
+            "jobId": "00000000-0000-0000-0000-000000000001:run-key-s-failure",
+            "incoming": "function",
+            "outgoing": "s",
+            "incomingGeneratorStep": "",
+            "incomingGeneratorStepName": "",
+            "atNs": 0,
+            "mode": "none",
+            "coalesceKey": "",
+            "attempt": 0,
+            "maxAttempts": 3,
+            "priority": 7,
+            "branch": 0,
+            "group": "discovery:0"
+          }
+        ],
+        "metadata": [],
+        "pending": [],
+        "error": "none",
+        "policy": "original",
+        "errorContext": "original",
+        "uuidSites": {
+          "0": [
+            "discovery"
+          ]
+        },
+        "scheduled": [
+          {
+            "branch": 0,
+            "name": null,
+            "group": "discovery:0",
+            "attempt": 0,
+            "payload": {
+              "kind": "edge-error",
+              "jobId": "00000000-0000-0000-0000-000000000001:run-key-s-failure",
+              "incoming": "function",
+              "outgoing": "s",
+              "incomingGeneratorStep": "",
+              "incomingGeneratorStepName": "",
+              "mode": "none",
+              "coalesceKey": "",
+              "attempt": 0,
+              "maxAttempts": 3,
+              "priority": 7
+            }
+          }
+        ]
+      },
+      "attempt": 2
+    },
+    {
+      "name": "response-user-no-retry",
+      "ops": [
+        {
+          "op": "StepError",
+          "id": "s",
+          "error": true,
+          "prepared": "{\"error\":{\"name\":\"E\",\"message\":\"x\"}}",
+          "prepareOp": "StepFailed"
+        }
+      ],
+      "expected": {
+        "events": [
+          "handler:save:s",
+          "failed:s:Failed:1",
+          "handler:enqueue:s",
+          "scheduled:edge-error:<nil>:0"
+        ],
+        "before": [],
+        "writes": {
+          "s": "{\"error\":{\"name\":\"E\",\"message\":\"x\"}}"
+        },
+        "recipes": [
+          {
+            "kind": "edge-error",
+            "jobId": "00000000-0000-0000-0000-000000000001:run-key-s-failure",
+            "incoming": "function",
+            "outgoing": "s",
+            "incomingGeneratorStep": "",
+            "incomingGeneratorStepName": "",
+            "atNs": 0,
+            "mode": "none",
+            "coalesceKey": "",
+            "attempt": 0,
+            "maxAttempts": 3,
+            "priority": 7,
+            "branch": 0,
+            "group": "discovery:0"
+          }
+        ],
+        "metadata": [],
+        "pending": [],
+        "error": "none",
+        "policy": "original",
+        "errorContext": "original",
+        "uuidSites": {
+          "0": [
+            "discovery"
+          ]
+        },
+        "scheduled": [
+          {
+            "branch": 0,
+            "name": null,
+            "group": "discovery:0",
+            "attempt": 0,
+            "payload": {
+              "kind": "edge-error",
+              "jobId": "00000000-0000-0000-0000-000000000001:run-key-s-failure",
+              "incoming": "function",
+              "outgoing": "s",
+              "incomingGeneratorStep": "",
+              "incomingGeneratorStepName": "",
+              "mode": "none",
+              "coalesceKey": "",
+              "attempt": 0,
+              "maxAttempts": 3,
+              "priority": 7
+            }
+          }
+        ]
+      },
+      "responseUserNoRetry": true
+    },
+    {
+      "name": "competing-errors-complete-join",
+      "ops": [
+        {
+          "op": "StepRun",
+          "id": "a",
+          "prepared": "{\"data\":null}",
+          "saveError": "ordinary",
+          "prepareOp": "StepRun"
+        },
+        {
+          "op": "StepRun",
+          "id": "b",
+          "prepared": "{\"data\":null}",
+          "saveError": "overflow",
+          "prepareOp": "StepRun"
+        }
+      ],
+      "expected": {
+        "events": [
+          "handler:save:a",
+          "handler:save:b"
+        ],
+        "before": [],
+        "writes": {
+          "a": "{\"data\":null}",
+          "b": "{\"data\":null}"
+        },
+        "recipes": [],
+        "metadata": [],
+        "pending": [],
+        "error": "ordinary|overflow",
+        "policy": "original",
+        "errorContext": "original",
+        "uuidSites": {
+          "0": [
+            "history"
+          ],
+          "1": [
+            "history"
+          ]
+        },
+        "scheduled": []
+      },
+      "force": true
+    },
+    {
+      "name": "stored-version-authority",
+      "ops": [
+        {
+          "op": "StepPlanned",
+          "id": "step-a",
+          "name": "duplicate-0",
+          "displayName": ""
+        },
+        {
+          "op": "StepPlanned",
+          "id": "step-a",
+          "name": "duplicate-1",
+          "displayName": ""
+        },
+        {
+          "op": "StepPlanned",
+          "id": "step-b"
+        }
+      ],
+      "expected": {
+        "events": [
+          "save_pending_completed",
+          "handler:enqueue:previous",
+          "scheduled:edge:duplicate-0:0",
+          "handler:enqueue:previous",
+          "scheduled:edge:duplicate-1:0",
+          "handler:enqueue:previous",
+          "scheduled:edge::0"
+        ],
+        "before": [
+          [
+            "save_pending_completed",
+            "handler:enqueue:previous"
+          ]
+        ],
+        "writes": {},
+        "recipes": [
+          {
+            "kind": "edge",
+            "jobId": "00000000-0000-0000-0000-000000000001:run-key-step-a-plan",
+            "incoming": "function",
+            "outgoing": "previous",
+            "incomingGeneratorStep": "step-a",
+            "incomingGeneratorStepName": "",
+            "atNs": -1000000,
+            "mode": "none",
+            "coalesceKey": "13fa418a9b022a06",
+            "attempt": 0,
+            "maxAttempts": 3,
+            "priority": 7,
+            "branch": 0,
+            "group": "planned:0"
+          },
+          {
+            "kind": "edge",
+            "jobId": "00000000-0000-0000-0000-000000000001:run-key-step-a-plan",
+            "incoming": "function",
+            "outgoing": "previous",
+            "incomingGeneratorStep": "step-a",
+            "incomingGeneratorStepName": "",
+            "atNs": -1000000,
+            "mode": "none",
+            "coalesceKey": "13fa418a9b022a06",
+            "attempt": 0,
+            "maxAttempts": 3,
+            "priority": 7,
+            "branch": 1,
+            "group": "planned:1"
+          },
+          {
+            "kind": "edge",
+            "jobId": "00000000-0000-0000-0000-000000000001:run-key-step-b-plan",
+            "incoming": "function",
+            "outgoing": "previous",
+            "incomingGeneratorStep": "step-b",
+            "incomingGeneratorStepName": "",
+            "atNs": -1000000,
+            "mode": "none",
+            "coalesceKey": "13fa418a9b022a06",
+            "attempt": 0,
+            "maxAttempts": 3,
+            "priority": 7,
+            "branch": 2,
+            "group": "planned:2"
+          }
+        ],
+        "metadata": [],
+        "pending": [
+          [
+            "step-a",
+            "step-a",
+            "step-b"
+          ]
+        ],
+        "error": "none",
+        "policy": "original",
+        "errorContext": "original",
+        "uuidSites": {
+          "0": [
+            "history",
+            "planned"
+          ],
+          "1": [
+            "history",
+            "planned"
+          ],
+          "2": [
+            "history",
+            "planned"
+          ]
+        },
+        "scheduled": [
+          {
+            "branch": 0,
+            "name": "duplicate-0",
+            "group": "planned:0",
+            "attempt": 0,
+            "payload": {
+              "kind": "edge",
+              "jobId": "00000000-0000-0000-0000-000000000001:run-key-step-a-plan",
+              "incoming": "function",
+              "outgoing": "previous",
+              "incomingGeneratorStep": "step-a",
+              "incomingGeneratorStepName": "",
+              "mode": "none",
+              "coalesceKey": "13fa418a9b022a06",
+              "attempt": 0,
+              "maxAttempts": 3,
+              "priority": 7
+            }
+          },
+          {
+            "branch": 1,
+            "name": "duplicate-1",
+            "group": "planned:1",
+            "attempt": 0,
+            "payload": {
+              "kind": "edge",
+              "jobId": "00000000-0000-0000-0000-000000000001:run-key-step-a-plan",
+              "incoming": "function",
+              "outgoing": "previous",
+              "incomingGeneratorStep": "step-a",
+              "incomingGeneratorStepName": "",
+              "mode": "none",
+              "coalesceKey": "13fa418a9b022a06",
+              "attempt": 0,
+              "maxAttempts": 3,
+              "priority": 7
+            }
+          },
+          {
+            "branch": 2,
+            "name": "",
+            "group": "planned:2",
+            "attempt": 0,
+            "payload": {
+              "kind": "edge",
+              "jobId": "00000000-0000-0000-0000-000000000001:run-key-step-b-plan",
+              "incoming": "function",
+              "outgoing": "previous",
+              "incomingGeneratorStep": "step-b",
+              "incomingGeneratorStepName": "",
+              "mode": "none",
+              "coalesceKey": "13fa418a9b022a06",
+              "attempt": 0,
+              "maxAttempts": 3,
+              "priority": 7
+            }
+          }
+        ]
+      },
+      "storedVersion": 2,
+      "responseVersion": 1,
+      "force": true
+    },
+    {
+      "name": "unset-version-response-fallback",
+      "ops": [
+        {
+          "op": "StepPlanned",
+          "id": "step-a",
+          "name": "duplicate-0",
+          "displayName": ""
+        },
+        {
+          "op": "StepPlanned",
+          "id": "step-a",
+          "name": "duplicate-1",
+          "displayName": ""
+        },
+        {
+          "op": "StepPlanned",
+          "id": "step-b"
+        }
+      ],
+      "expected": {
+        "events": [
+          "metadata_update",
+          "save_pending_completed",
+          "handler:enqueue:previous",
+          "scheduled:edge:duplicate-0:0",
+          "handler:enqueue:previous",
+          "scheduled:edge:duplicate-1:0",
+          "handler:enqueue:previous",
+          "scheduled:edge::0"
+        ],
+        "before": [
+          [
+            "metadata_update",
+            "save_pending_completed"
+          ],
+          [
+            "save_pending_completed",
+            "handler:enqueue:previous"
+          ]
+        ],
+        "writes": {},
+        "recipes": [
+          {
+            "kind": "edge",
+            "jobId": "00000000-0000-0000-0000-000000000001:run-key-step-a-plan",
+            "incoming": "function",
+            "outgoing": "previous",
+            "incomingGeneratorStep": "step-a",
+            "incomingGeneratorStepName": "",
+            "atNs": -1000000,
+            "mode": "none",
+            "coalesceKey": "13fa418a9b022a06",
+            "attempt": 0,
+            "maxAttempts": 3,
+            "priority": 7,
+            "branch": 0,
+            "group": "planned:0"
+          },
+          {
+            "kind": "edge",
+            "jobId": "00000000-0000-0000-0000-000000000001:run-key-step-a-plan",
+            "incoming": "function",
+            "outgoing": "previous",
+            "incomingGeneratorStep": "step-a",
+            "incomingGeneratorStepName": "",
+            "atNs": -1000000,
+            "mode": "none",
+            "coalesceKey": "13fa418a9b022a06",
+            "attempt": 0,
+            "maxAttempts": 3,
+            "priority": 7,
+            "branch": 1,
+            "group": "planned:1"
+          },
+          {
+            "kind": "edge",
+            "jobId": "00000000-0000-0000-0000-000000000001:run-key-step-b-plan",
+            "incoming": "function",
+            "outgoing": "previous",
+            "incomingGeneratorStep": "step-b",
+            "incomingGeneratorStepName": "",
+            "atNs": -1000000,
+            "mode": "none",
+            "coalesceKey": "13fa418a9b022a06",
+            "attempt": 0,
+            "maxAttempts": 3,
+            "priority": 7,
+            "branch": 2,
+            "group": "planned:2"
+          }
+        ],
+        "metadata": [
+          {
+            "requestVersion": 2,
+            "forceStepPlan": true,
+            "hasAI": false
+          }
+        ],
+        "pending": [
+          [
+            "step-a",
+            "step-a",
+            "step-b"
+          ]
+        ],
+        "error": "none",
+        "policy": "original",
+        "errorContext": "original",
+        "uuidSites": {
+          "0": [
+            "history",
+            "planned"
+          ],
+          "1": [
+            "history",
+            "planned"
+          ],
+          "2": [
+            "history",
+            "planned"
+          ]
+        },
+        "scheduled": [
+          {
+            "branch": 0,
+            "name": "duplicate-0",
+            "group": "planned:0",
+            "attempt": 0,
+            "payload": {
+              "kind": "edge",
+              "jobId": "00000000-0000-0000-0000-000000000001:run-key-step-a-plan",
+              "incoming": "function",
+              "outgoing": "previous",
+              "incomingGeneratorStep": "step-a",
+              "incomingGeneratorStepName": "",
+              "mode": "none",
+              "coalesceKey": "13fa418a9b022a06",
+              "attempt": 0,
+              "maxAttempts": 3,
+              "priority": 7
+            }
+          },
+          {
+            "branch": 1,
+            "name": "duplicate-1",
+            "group": "planned:1",
+            "attempt": 0,
+            "payload": {
+              "kind": "edge",
+              "jobId": "00000000-0000-0000-0000-000000000001:run-key-step-a-plan",
+              "incoming": "function",
+              "outgoing": "previous",
+              "incomingGeneratorStep": "step-a",
+              "incomingGeneratorStepName": "",
+              "mode": "none",
+              "coalesceKey": "13fa418a9b022a06",
+              "attempt": 0,
+              "maxAttempts": 3,
+              "priority": 7
+            }
+          },
+          {
+            "branch": 2,
+            "name": "",
+            "group": "planned:2",
+            "attempt": 0,
+            "payload": {
+              "kind": "edge",
+              "jobId": "00000000-0000-0000-0000-000000000001:run-key-step-b-plan",
+              "incoming": "function",
+              "outgoing": "previous",
+              "incomingGeneratorStep": "step-b",
+              "incomingGeneratorStepName": "",
+              "mode": "none",
+              "coalesceKey": "13fa418a9b022a06",
+              "attempt": 0,
+              "maxAttempts": 3,
+              "priority": 7
+            }
+          }
+        ]
+      },
+      "storedVersion": -1,
+      "responseVersion": 2,
+      "force": true
+    },
+    {
+      "name": "old-stored-version-no-coalesce",
+      "ops": [
+        {
+          "op": "StepPlanned",
+          "id": "step-a",
+          "name": "duplicate-0",
+          "displayName": ""
+        },
+        {
+          "op": "StepPlanned",
+          "id": "step-a",
+          "name": "duplicate-1",
+          "displayName": ""
+        },
+        {
+          "op": "StepPlanned",
+          "id": "step-b"
+        }
+      ],
+      "expected": {
+        "events": [
+          "handler:enqueue:previous",
+          "scheduled:edge:duplicate-0:0",
+          "handler:enqueue:previous",
+          "scheduled:edge:duplicate-1:0",
+          "handler:enqueue:previous",
+          "scheduled:edge::0"
+        ],
+        "before": [],
+        "writes": {},
+        "recipes": [
+          {
+            "kind": "edge",
+            "jobId": "00000000-0000-0000-0000-000000000001:run-key-step-a-plan",
+            "incoming": "function",
+            "outgoing": "previous",
+            "incomingGeneratorStep": "step-a",
+            "incomingGeneratorStepName": "",
+            "atNs": -1000000,
+            "mode": "none",
+            "coalesceKey": "",
+            "attempt": 0,
+            "maxAttempts": 3,
+            "priority": 7,
+            "branch": 0,
+            "group": "planned:0"
+          },
+          {
+            "kind": "edge",
+            "jobId": "00000000-0000-0000-0000-000000000001:run-key-step-a-plan",
+            "incoming": "function",
+            "outgoing": "previous",
+            "incomingGeneratorStep": "step-a",
+            "incomingGeneratorStepName": "",
+            "atNs": -1000000,
+            "mode": "none",
+            "coalesceKey": "",
+            "attempt": 0,
+            "maxAttempts": 3,
+            "priority": 7,
+            "branch": 1,
+            "group": "planned:1"
+          },
+          {
+            "kind": "edge",
+            "jobId": "00000000-0000-0000-0000-000000000001:run-key-step-b-plan",
+            "incoming": "function",
+            "outgoing": "previous",
+            "incomingGeneratorStep": "step-b",
+            "incomingGeneratorStepName": "",
+            "atNs": -1000000,
+            "mode": "none",
+            "coalesceKey": "",
+            "attempt": 0,
+            "maxAttempts": 3,
+            "priority": 7,
+            "branch": 2,
+            "group": "planned:2"
+          }
+        ],
+        "metadata": [],
+        "pending": [],
+        "error": "none",
+        "policy": "original",
+        "errorContext": "original",
+        "uuidSites": {
+          "0": [
+            "history",
+            "planned"
+          ],
+          "1": [
+            "history",
+            "planned"
+          ],
+          "2": [
+            "history",
+            "planned"
+          ]
+        },
+        "scheduled": [
+          {
+            "branch": 0,
+            "name": "duplicate-0",
+            "group": "planned:0",
+            "attempt": 0,
+            "payload": {
+              "kind": "edge",
+              "jobId": "00000000-0000-0000-0000-000000000001:run-key-step-a-plan",
+              "incoming": "function",
+              "outgoing": "previous",
+              "incomingGeneratorStep": "step-a",
+              "incomingGeneratorStepName": "",
+              "mode": "none",
+              "coalesceKey": "",
+              "attempt": 0,
+              "maxAttempts": 3,
+              "priority": 7
+            }
+          },
+          {
+            "branch": 1,
+            "name": "duplicate-1",
+            "group": "planned:1",
+            "attempt": 0,
+            "payload": {
+              "kind": "edge",
+              "jobId": "00000000-0000-0000-0000-000000000001:run-key-step-a-plan",
+              "incoming": "function",
+              "outgoing": "previous",
+              "incomingGeneratorStep": "step-a",
+              "incomingGeneratorStepName": "",
+              "mode": "none",
+              "coalesceKey": "",
+              "attempt": 0,
+              "maxAttempts": 3,
+              "priority": 7
+            }
+          },
+          {
+            "branch": 2,
+            "name": "",
+            "group": "planned:2",
+            "attempt": 0,
+            "payload": {
+              "kind": "edge",
+              "jobId": "00000000-0000-0000-0000-000000000001:run-key-step-b-plan",
+              "incoming": "function",
+              "outgoing": "previous",
+              "incomingGeneratorStep": "step-b",
+              "incomingGeneratorStepName": "",
+              "mode": "none",
+              "coalesceKey": "",
+              "attempt": 0,
+              "maxAttempts": 3,
+              "priority": 7
+            }
+          }
+        ]
+      },
+      "storedVersion": 1,
+      "responseVersion": 2,
+      "force": true
+    },
+    {
+      "name": "metadata-failure-before-clocks",
+      "ops": [
+        {
+          "op": "StepPlanned",
+          "id": "a"
+        },
+        {
+          "op": "StepPlanned",
+          "id": "b"
+        }
+      ],
+      "expected": {
+        "events": [
+          "metadata_update"
+        ],
+        "before": [],
+        "writes": {},
+        "recipes": [],
+        "metadata": [
+          {
+            "requestVersion": 2,
+            "forceStepPlan": true,
+            "hasAI": false
+          }
+        ],
+        "pending": [],
+        "error": "metadata",
+        "policy": "original",
+        "clockCount": 0,
+        "errorContext": "metadata",
+        "uuidSites": {},
+        "scheduled": []
+      },
+      "storedVersion": -1,
+      "metadataError": "metadata"
+    },
+    {
+      "name": "pending-failure-before-launch",
+      "ops": [
+        {
+          "op": "StepPlanned",
+          "id": "a"
+        },
+        {
+          "op": "StepPlanned",
+          "id": "b"
+        }
+      ],
+      "expected": {
+        "events": [
+          "save_pending_failed"
+        ],
+        "before": [],
+        "writes": {},
+        "recipes": [],
+        "metadata": [],
+        "pending": [
+          [
+            "a",
+            "b"
+          ]
+        ],
+        "error": "pending",
+        "policy": "original",
+        "clockCount": 1,
+        "errorContext": "pending",
+        "uuidSites": {},
+        "scheduled": []
+      },
+      "force": true,
+      "pendingError": "pending"
+    },
+    {
+      "name": "metadata-before-limit",
+      "ops": [
+        {
+          "op": "None",
+          "id": "n"
+        }
+      ],
+      "expected": {
+        "events": [
+          "metadata_update"
+        ],
+        "before": [],
+        "writes": {},
+        "recipes": [],
+        "metadata": [
+          {
+            "requestVersion": 2,
+            "forceStepPlan": true,
+            "hasAI": false
+          }
+        ],
+        "pending": [],
+        "error": "function-overflow",
+        "policy": "original",
+        "clockCount": 0,
+        "errorContext": "original",
+        "uuidSites": {},
+        "scheduled": []
+      },
+      "repeat": 1001,
+      "storedVersion": -1
+    },
+    {
+      "name": "ai-metadata-proposal",
+      "ops": [
+        {
+          "op": "None",
+          "id": "n",
+          "ai": true
+        }
+      ],
+      "expected": {
+        "events": [
+          "metadata_update"
+        ],
+        "before": [],
+        "writes": {},
+        "recipes": [],
+        "metadata": [
+          {
+            "requestVersion": 2,
+            "forceStepPlan": true,
+            "hasAI": true
+          }
+        ],
+        "pending": [],
+        "error": "none",
+        "policy": "original",
+        "clockCount": 1,
+        "errorContext": "original",
+        "uuidSites": {},
+        "scheduled": []
+      },
+      "storedVersion": 0,
+      "responseVersion": 2,
+      "force": true
+    },
+    {
+      "name": "planned-clock-after-metadata",
+      "ops": [
+        {
+          "op": "StepPlanned",
+          "id": "s",
+          "name": "plan"
+        }
+      ],
+      "expected": {
+        "events": [
+          "metadata_update",
+          "handler:enqueue:previous",
+          "scheduled:edge:plan:0"
+        ],
+        "before": [],
+        "writes": {},
+        "recipes": [
+          {
+            "kind": "edge",
+            "jobId": "00000000-0000-0000-0000-000000000001:run-key-s-plan",
+            "incoming": "function",
+            "outgoing": "previous",
+            "incomingGeneratorStep": "s",
+            "incomingGeneratorStepName": "plan",
+            "atNs": 4999000000,
+            "mode": "none",
+            "coalesceKey": "",
+            "attempt": 0,
+            "maxAttempts": 3,
+            "priority": 7,
+            "branch": 0,
+            "group": "planned:0"
+          }
+        ],
+        "metadata": [
+          {
+            "requestVersion": 2,
+            "forceStepPlan": false,
+            "hasAI": false
+          }
+        ],
+        "pending": [],
+        "error": "none",
+        "policy": "original",
+        "callbackNs": [
+          5000000000
+        ],
+        "clockCount": 3,
+        "errorContext": "original",
+        "handledAtNs": 5000000000,
+        "uuidSites": {
+          "0": [
+            "planned"
+          ]
+        },
+        "scheduled": [
+          {
+            "branch": 0,
+            "name": "plan",
+            "group": "planned:0",
+            "attempt": 0,
+            "payload": {
+              "kind": "edge",
+              "jobId": "00000000-0000-0000-0000-000000000001:run-key-s-plan",
+              "incoming": "function",
+              "outgoing": "previous",
+              "incomingGeneratorStep": "s",
+              "incomingGeneratorStepName": "plan",
+              "mode": "none",
+              "coalesceKey": "",
+              "attempt": 0,
+              "maxAttempts": 3,
+              "priority": 7
+            }
+          }
+        ]
+      },
+      "storedVersion": -1,
+      "advanceMetadataNs": 5000000000
+    },
+    {
+      "name": "coalesced-success-job",
+      "ops": [
+        {
+          "op": "StepRun",
+          "id": "s",
+          "prepared": "{\"data\":null}",
+          "prepareOp": "StepRun"
+        }
+      ],
+      "expected": {
+        "events": [
+          "handler:save:s",
+          "finished:s",
+          "handler:enqueue:s",
+          "scheduled:edge:<nil>:0"
+        ],
+        "before": [],
+        "writes": {
+          "s": "{\"data\":null}"
+        },
+        "recipes": [
+          {
+            "kind": "edge",
+            "jobId": "01ARZ3NDEKTSV4RRFFQ69G5FAV-1af438d9048ad7aa-discover",
+            "incoming": "function",
+            "outgoing": "s",
+            "incomingGeneratorStep": "",
+            "incomingGeneratorStepName": "",
+            "atNs": 0,
+            "mode": "none",
+            "coalesceKey": "",
+            "attempt": 0,
+            "maxAttempts": 3,
+            "priority": 7,
+            "branch": 0,
+            "group": "discovery:0"
+          }
+        ],
+        "metadata": [],
+        "pending": [],
+        "error": "none",
+        "policy": "original",
+        "errorContext": "original",
+        "uuidSites": {
+          "0": [
+            "discovery"
+          ]
+        },
+        "scheduled": [
+          {
+            "branch": 0,
+            "name": null,
+            "group": "discovery:0",
+            "attempt": 0,
+            "payload": {
+              "kind": "edge",
+              "jobId": "01ARZ3NDEKTSV4RRFFQ69G5FAV-1af438d9048ad7aa-discover",
+              "incoming": "function",
+              "outgoing": "s",
+              "incomingGeneratorStep": "",
+              "incomingGeneratorStepName": "",
+              "mode": "none",
+              "coalesceKey": "",
+              "attempt": 0,
+              "maxAttempts": 3,
+              "priority": 7
+            }
+          }
+        ]
+      },
+      "contextCoalesceKey": "1af438d9048ad7aa"
+    },
+    {
+      "name": "discovery-overflow-is-hidden-by-always-wrapper",
+      "ops": [
+        {
+          "op": "StepRun",
+          "id": "s",
+          "prepared": "{\"data\":null}",
+          "prepareOp": "StepRun"
+        }
+      ],
+      "noRetry": true,
+      "retryAtNs": 3600000000000,
+      "queueError": "overflow",
+      "expected": {
+        "events": [
+          "handler:save:s",
+          "finished:s",
+          "handler:enqueue:s"
+        ],
+        "before": [],
+        "writes": {
+          "s": "{\"data\":null}"
+        },
+        "recipes": [
+          {
+            "kind": "edge",
+            "jobId": "00000000-0000-0000-0000-000000000001:run-key-s",
+            "incoming": "function",
+            "outgoing": "s",
+            "incomingGeneratorStep": "",
+            "incomingGeneratorStepName": "",
+            "atNs": 0,
+            "mode": "none",
+            "coalesceKey": "",
+            "attempt": 0,
+            "maxAttempts": 3,
+            "priority": 7,
+            "branch": 0,
+            "group": "discovery:0"
+          }
+        ],
+        "metadata": [],
+        "pending": [],
+        "error": "overflow",
+        "policy": "always",
+        "afterEnqueueSpan": "drop",
+        "errorContext": "discovery",
+        "uuidSites": {
+          "0": [
+            "discovery"
+          ]
+        },
+        "scheduled": []
+      }
+    },
+    {
+      "name": "already-always-error-retains-original-identity",
+      "ops": [
+        {
+          "op": "StepRun",
+          "id": "s",
+          "prepared": "{\"data\":null}",
+          "saveError": "already-always",
+          "prepareOp": "StepRun"
+        }
+      ],
+      "noRetry": true,
+      "retryAtNs": 3600000000000,
+      "expected": {
+        "events": [
+          "handler:save:s"
+        ],
+        "before": [],
+        "writes": {
+          "s": "{\"data\":null}"
+        },
+        "recipes": [],
+        "metadata": [],
+        "pending": [],
+        "error": "already-always",
+        "policy": "original",
+        "alwaysRetryable": true,
+        "errorContext": "original",
+        "uuidSites": {},
+        "scheduled": []
+      }
+    },
+    {
+      "name": "parallel-proposal-keeps-loaded-version",
+      "ops": [
+        {
+          "op": "StepPlanned",
+          "id": "step-a"
+        },
+        {
+          "op": "StepPlanned",
+          "id": "step-b"
+        }
+      ],
+      "storedVersion": 0,
+      "responseVersion": 2,
+      "expected": {
+        "events": [
+          "metadata_update",
+          "handler:enqueue:previous",
+          "scheduled:edge::0",
+          "handler:enqueue:previous",
+          "scheduled:edge::0"
+        ],
+        "before": [
+          [
+            "metadata_update",
+            "handler:enqueue:previous"
+          ]
+        ],
+        "writes": {},
+        "recipes": [
+          {
+            "kind": "edge",
+            "jobId": "00000000-0000-0000-0000-000000000001:run-key-step-a-plan",
+            "incoming": "function",
+            "outgoing": "previous",
+            "incomingGeneratorStep": "step-a",
+            "incomingGeneratorStepName": "",
+            "atNs": -1000000,
+            "mode": "none",
+            "coalesceKey": "",
+            "attempt": 0,
+            "maxAttempts": 3,
+            "priority": 7,
+            "branch": 0,
+            "group": "planned:0"
+          },
+          {
+            "kind": "edge",
+            "jobId": "00000000-0000-0000-0000-000000000001:run-key-step-b-plan",
+            "incoming": "function",
+            "outgoing": "previous",
+            "incomingGeneratorStep": "step-b",
+            "incomingGeneratorStepName": "",
+            "atNs": -1000000,
+            "mode": "none",
+            "coalesceKey": "",
+            "attempt": 0,
+            "maxAttempts": 3,
+            "priority": 7,
+            "branch": 1,
+            "group": "planned:1"
+          }
+        ],
+        "metadata": [
+          {
+            "requestVersion": 2,
+            "forceStepPlan": true,
+            "hasAI": false
+          }
+        ],
+        "pending": [],
+        "error": "none",
+        "policy": "original",
+        "errorContext": "original",
+        "uuidSites": {
+          "0": [
+            "history",
+            "planned"
+          ],
+          "1": [
+            "history",
+            "planned"
+          ]
+        },
+        "scheduled": [
+          {
+            "branch": 0,
+            "name": "",
+            "group": "planned:0",
+            "attempt": 0,
+            "payload": {
+              "kind": "edge",
+              "jobId": "00000000-0000-0000-0000-000000000001:run-key-step-a-plan",
+              "incoming": "function",
+              "outgoing": "previous",
+              "incomingGeneratorStep": "step-a",
+              "incomingGeneratorStepName": "",
+              "mode": "none",
+              "coalesceKey": "",
+              "attempt": 0,
+              "maxAttempts": 3,
+              "priority": 7
+            }
+          },
+          {
+            "branch": 1,
+            "name": "",
+            "group": "planned:1",
+            "attempt": 0,
+            "payload": {
+              "kind": "edge",
+              "jobId": "00000000-0000-0000-0000-000000000001:run-key-step-b-plan",
+              "incoming": "function",
+              "outgoing": "previous",
+              "incomingGeneratorStep": "step-b",
+              "incomingGeneratorStepName": "",
+              "mode": "none",
+              "coalesceKey": "",
+              "attempt": 0,
+              "maxAttempts": 3,
+              "priority": 7
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "retryable-error-retry-at-after-callback",
+      "ops": [
+        {
+          "op": "StepError",
+          "id": "s",
+          "name": "retry",
+          "error": true,
+          "prepareOp": "StepError"
+        }
+      ],
+      "retryAtNs": 3600000000000,
+      "expected": {
+        "events": [
+          "failed:s:Errored:1",
+          "scheduled::retry:2"
+        ],
+        "before": [
+          [
+            "failed:s:Errored:1",
+            "scheduled::retry:2"
+          ]
+        ],
+        "writes": {},
+        "recipes": [],
+        "metadata": [],
+        "pending": [],
+        "error": "handled",
+        "policy": "at",
+        "errorContext": "original",
+        "uuidSites": {},
+        "scheduled": [
+          {
+            "branch": 0,
+            "name": "retry",
+            "group": "original",
+            "attempt": 2,
+            "payload": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "preparation-state-size-failure-retains-original",
+      "storedVersion": -1,
+      "noRetry": true,
+      "retryAtNs": 3600000000000,
+      "stateSizeLimit": 12,
+      "ops": [
+        {
+          "op": "StepRun",
+          "id": "oversized",
+          "name": "sdk-size-check",
+          "displayName": "Size check",
+          "data": "null",
+          "options": "{\"parallelMode\":\"wait\",\"type\":\"step.ai.wrap\",\"input\":[7]}",
+          "mode": "wait",
+          "ai": true,
+          "prepareOp": "StepRun",
+          "prepareError": "preparation-overflow"
+        }
+      ],
+      "expected": {
+        "events": [
+          "metadata_update"
+        ],
+        "before": [],
+        "writes": {},
+        "recipes": [],
+        "metadata": [
+          {
+            "requestVersion": 2,
+            "forceStepPlan": false,
+            "hasAI": true
+          }
+        ],
+        "pending": [],
+        "error": "preparation-overflow",
+        "policy": "original",
+        "errorContext": "original",
+        "uuidSites": {},
+        "scheduled": [],
+        "lifecycleNs": [],
+        "callbackNs": [],
+        "clockCount": 1,
+        "stoppedAfterPrepare": [
+          0
+        ]
+      }
+    }
+  ]
+}
