@@ -1,0 +1,14 @@
+[workspace]
+members = [
+    "crates/opcode-kernel",
+    "crates/opcode-bridge",
+]
+resolver = "3"
+
+[workspace.package]
+edition = "2024"
+license = "Apache-2.0"
+rust-version = "1.94.0"
+
+[profile.release]
+panic = "unwind"
