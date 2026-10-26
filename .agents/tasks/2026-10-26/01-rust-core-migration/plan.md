@@ -24,10 +24,11 @@ Use dedicated worktrees and small stacked PRs. Verify and record the first layer
 - [ ] **1. Freeze baseline — partial.**
   - [x] SDK request wire and replay-shaped input corpus implemented and independently Luna-reviewed with no blockers; malformed-case and reset-overhead-label findings are fixed. See the [corpus README](../../../../pkg/execution/driver/testdata/sdk-request-v1/README.md).
   - [x] Opcode-plan and generator-parser fixtures accepted after independent Sol-high review found no blockers; three P2 findings were fixed, with Go validation and mutation evidence in the [opcode baseline](references/opcode-plan-baseline.md).
-  - [ ] Complete SDK-response replay, CEL/SQL, queue/state persistence, recovery and broader lifecycle/fault coverage, full performance baselines, and owner-confirmed SDK/platform policy.
-- [ ] **2. Bridge spike.** Compare FFI and process prototypes on Linux amd64/arm64; measure correctness, packaging, cancellation, memory, startup, and end-to-end cost.
+  - [x] CEL/SQL portable fixtures and owner-boundary tests accepted as stack layer 2 after independent Sol-high review; the benchmark path was renamed to `evaluator_program_construction_cached_parse`, its source comment explains lifted-literal parser-cache reuse, and ten samples were rerun. See the [CEL/SQL compatibility baseline](references/cel-sql-compatibility.md).
+  - [ ] Complete the Go reference baseline: SDK-response replay, CEL/SQL server semantics and broader operator coverage, queue/state persistence, recovery and broader lifecycle/fault coverage, and initial Go performance baselines; confirm SDK/platform policy with owners. CEL/SQL has a partial Go corpus. Rust parity and Go/Rust/bridge comparisons belong to later phases. See the [CEL/SQL compatibility baseline](references/cel-sql-compatibility.md).
+- [ ] **2. Bridge spike.** Compare FFI and process prototypes on Linux amd64/arm64 using the Go reference baselines; measure correctness, packaging, cancellation, memory, startup, and bridge cost. Full Rust fixture parity and matched Go/Rust/bridge performance follow as the Rust slices land.
 - [ ] **3. First Rust slice.** Port pure SDK-opcode classification/grouping and step-plan intents; Go remains the sole owner of writes, SDK calls, and effects.
-- [ ] **4. CEL/SQL and core parity.** Stack CEL evaluation plus SQLite/Postgres filter parity next, then migrate the remaining trigger, schedule, and run/step decisions.
+- [ ] **4. CEL/SQL and core parity.** Have Rust consume the CEL/SQL fixtures and compare evaluation plus SQLite/Postgres filter behavior against the Go baseline; then migrate the remaining trigger, schedule, and run/step decisions.
 - [ ] **5. Persistence and recovery.** Port queue/state algorithms only after persisted formats, atomicity, ownership, and recovery pass parity; Go remains the sole Goose migration owner.
 - [ ] **6. Fenced rollout.** Expand shadow and production ownership by run/partition only after parity and recovery gates pass.
 - [ ] **7. Retire Go core.** Retire Go algorithms after parity, deferred-platform validation, release, recovery, and rollback gates pass; retain a validated Go rollback artifact.
@@ -35,7 +36,7 @@ Use dedicated worktrees and small stacked PRs. Verify and record the first layer
 ## Acceptance criteria
 
 - [ ] Full wire/replay, CEL/SQL, queue/state, fault, recovery, and lifecycle corpus has no unexplained differences; effect ordering and idempotency behavior match.
-- [ ] Matched Go/Rust/bridge performance is measured and gates calibrated; no migration performance threshold is inferred from the current Go microbenchmarks.
+- [ ] Before rollout, matched Go/Rust/bridge performance is measured and gates calibrated; no migration performance threshold is inferred from the current Go microbenchmarks.
 - [ ] Supported-target builds, compatible persisted state, single ownership, staged rollout, and rollback are validated before Go retirement.
 
 ## References
@@ -44,5 +45,6 @@ Use dedicated worktrees and small stacked PRs. Verify and record the first layer
 - [Behavior and persistence contracts](references/behavior-contracts.md) — observable replay, CEL, lifecycle, queue, and storage behavior.
 - [SDK and deployment matrix](references/sdk-deployment-matrix.md) — configured CI/build coverage, first Linux bridge targets, and deferred gates.
 - [Opcode-plan baseline](references/opcode-plan-baseline.md) — fixture scope, review status, test evidence, mutations, and benchmarks.
+- [CEL/SQL compatibility baseline](references/cel-sql-compatibility.md) — portable CEL evaluation and SQLite/Postgres filter fixtures, owner-boundary tests, and Go benchmark observations.
 - [Phase 1 baseline discovery](references/baseline-discovery.md) — source-grounded coverage and remaining baseline work.
 - [Validation and rollout](references/validation-rollout.md) — stack order, parity commands, rollout, release, and rollback gates.
