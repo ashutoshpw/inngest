@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"os"
 	"slices"
 	"strconv"
@@ -333,4 +334,68 @@ func expectedNativeQueueSnapshot(t *testing.T, f nativeEffectsFixture, prefix st
 		out[strings.ReplaceAll(key, "QUEUE", prefix)] = nativeStoredValue{v.Type, value, v.PTTL}
 	}
 	return out
+}
+
+// Shared independent Go fixture projection for both Go and native SaveStep tests.
+func expectedNativeSaveSnapshot(t *testing.T, f nativeEffectsFixture, tc nativeSaveCase, keys []string, pre nativeSnapshot) nativeSnapshot {
+	t.Helper()
+	expected := nativeSnapshot{}
+	for k, v := range pre {
+		expected[k] = v
+	}
+	metadata := maps.Clone(pre[keys[1]].Value.(map[string]string))
+	stateDelta := f.OutputBytes
+	if tc.Name == "input-metadata" {
+		stateDelta -= f.InputBytes
+		require.Equal(t, map[string]string{"s": f.Input}, pre[keys[3]].Value)
+	}
+	add := func(field string, n int) {
+		v, e := strconv.Atoi(metadata[field])
+		if metadata[field] == "" {
+			v = 0
+			e = nil
+		}
+		require.NoError(t, e)
+		metadata[field] = strconv.Itoa(v + n)
+	}
+	require.Equal(t, tc.StateSizeDelta, stateDelta)
+	add("state_size", tc.StateSizeDelta)
+	add("step_count", tc.StepCount)
+	if tc.MetadataSizeDelta > 0 {
+		add("metadata_size", tc.MetadataSizeDelta)
+	}
+	expected[keys[1]] = nativeStoredValue{"hash", metadata, -1}
+	expected[keys[0]] = nativeStoredValue{"hash", map[string]string{"s": f.Output}, -1}
+	expected[keys[2]] = nativeStoredValue{"list", tc.Stack, -1}
+	delete(expected, keys[4])
+	if len(tc.Pending) == 2 {
+		expected[keys[4]] = nativeStoredValue{"set", []string{"held"}, -1}
+	}
+	return expected
+}
+
+func expectedNativeInitialSnapshot(t *testing.T, f nativeEffectsFixture, keys []string, prefix string, sharded, withInput bool, pending []string) nativeSnapshot {
+	t.Helper()
+	initial := maps.Clone(f.InitialMetadata)
+	if withInput {
+		initial["state_size"] = strconv.Itoa(f.InitialStateSizeWithInput)
+	}
+	tag := prefix
+	if sharded {
+		tag += ":00000000-0000-0000-0000-000000000003"
+	}
+	expected := nativeSnapshot{
+		"{" + tag + "}:key:run-key": {"string", "01ARZ3NDEKTSV4RRFFQ69G5FAV", 86400000},
+		keys[1]:                     {"hash", initial, -1},
+		strings.Replace(keys[0], ":actions:", ":bulk-events:", 1): {"string", f.InitialEvents, -1},
+	}
+	if withInput {
+		expected[keys[3]] = nativeStoredValue{"hash", map[string]string{"s": f.Input}, -1}
+	}
+	if len(pending) > 0 {
+		sorted := slices.Clone(pending)
+		slices.Sort(sorted)
+		expected[keys[4]] = nativeStoredValue{"set", sorted, -1}
+	}
+	return expected
 }
