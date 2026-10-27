@@ -2,6 +2,8 @@
 //! production selector. See the task's native-save and native-enqueue references.
 mod enqueue;
 mod json;
+#[cfg(feature = "test-helper")]
+pub mod response;
 mod runtime;
 pub use enqueue::{DiscoveryConfig, EnqueueRequest, QueueConfig, QueueMode};
 pub use runtime::{

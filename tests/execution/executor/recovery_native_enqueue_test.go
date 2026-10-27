@@ -136,15 +136,20 @@ func TestRecoveryReplaysNativeEnqueue(t *testing.T) {
 }
 
 type recoveryNativeOutcome struct {
-	Class            string  `json:"class"`
-	Error            string  `json:"error"`
-	WriteStatus      string  `json:"writeStatus"`
-	HasPending       bool    `json:"hasPending"`
-	Result           *int64  `json:"result"`
-	StoredID         string  `json:"storedId"`
-	ExistingRunID    *string `json:"existingRunId"`
-	LastFailure      string  `json:"lastFailure"`
-	PreparationError string  `json:"preparationError"`
+	Disposition      string                 `json:"disposition"`
+	Save             *recoveryNativeOutcome `json:"save"`
+	Enqueue          *recoveryNativeOutcome `json:"enqueue"`
+	GroupID          string                 `json:"groupId"`
+	NowMS            int64                  `json:"nowMs"`
+	Class            string                 `json:"class"`
+	Error            string                 `json:"error"`
+	WriteStatus      string                 `json:"writeStatus"`
+	HasPending       bool                   `json:"hasPending"`
+	Result           *int64                 `json:"result"`
+	StoredID         string                 `json:"storedId"`
+	ExistingRunID    *string                `json:"existingRunId"`
+	LastFailure      string                 `json:"lastFailure"`
+	PreparationError string                 `json:"preparationError"`
 }
 
 // Native classes have no Go sentinel identity. Reconstruct Go's public queue
