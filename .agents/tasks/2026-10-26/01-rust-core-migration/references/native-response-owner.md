@@ -2,8 +2,9 @@
 
 State: parent accepted after independent Sol interoperability review 01 and Luna
 semantics review 01 found no blockers; implementation and validation are delivered
-as a test-only stacked PR. Internal experiment only. FFI_NO_GO and SCREEN_NO_GO
-remain; Phase 1 partial, Phase 2 open, bridge unset.
+in [PR #21](https://github.com/ashutoshpw/inngest/pull/21), a test-only stacked PR.
+Internal experiment only. FFI_NO_GO and SCREEN_NO_GO remain; Phase 1 partial,
+Phase 2 open, bridge unset.
 
 ## Amendment, binding and scope
 
@@ -401,3 +402,22 @@ transport choice, production selector/activation, rollout and rollback remain op
 Save and enqueue are distinct commits. Socket timeouts remain inactivity bounds,
 not dribble-proof total deadlines; cancellation remains cooperative. Root SSPL
 and workspace Apache licensing are unresolved; no distribution rights are claimed.
+
+## Delivery record (2026-10-27)
+
+[PR #21](https://github.com/ashutoshpw/inngest/pull/21) is open from
+`t3/native-response-owner` into PR20's `t3/test-step-run-input-binding`, based on
+`70e6536f206b2dc9253a09e6d1ffb37bd8d035eb`. It opened at
+`8571eebcfb31b2fa072344689b39b30fd785e54d`. The opening snapshot was open,
+non-draft and mergeable, with no reviews or check runs reported. Its required PR
+sections are Description, Release note (`None`) and Migration note (`None`). T3
+links the PR to the delivery thread and parent thread
+`c37dccc0-74a6-4b56-bc19-0ffcf321cc19`; both links were verified. No merge, watch,
+polling or force push was performed.
+
+The two implementation/evidence commits are `0bc1d0572` and `8571eebcf`. A
+documentation follow-up records the PR opening snapshot and advances the branch
+head; its final SHA is reported in the delivery handoff. For this delivery, Go
+formatting, Rust formatting, JSON parsing, the Sol evidence hash manifest, local
+reference links and Git whitespace were checked. No broad test suite or benchmark
+was rerun.

@@ -84,7 +84,7 @@ Phase 2 open, bridge unset; PR18 remains separate native adapters, FFI NO_GO rem
 - [x] Validate real-store faults, explicit native retries and fresh ordinary Go replay; preserve twelve baseline files.
 - [x] Record exact validation/hash evidence in [native response owner](references/native-response-owner.md), including author and independent review scope.
 - [x] Independent Sol interoperability review 01 and Luna semantics review 01 found no blockers; parent accepted the bounded constructed-domain owner.
-- [x] Commit and deliver the implementation/evidence as a conventional stacked PR against PR20; link the PR to the delivery and parent threads.
+- [x] Commit and deliver the implementation/evidence as [PR #21](https://github.com/ashutoshpw/inngest/pull/21), stacked on PR20; link it to the delivery and parent threads.
 
 Reduced-domain ownership and fresh-Go interop only. No production eligibility,
 observer equivalence, full handler parity, traffic, transport selection, benchmark,
