@@ -46,7 +46,7 @@ See [native enqueue](references/native-enqueue.md). Acceptance covers one ordina
 - [x] Bound retained compacted output before envelope allocation; preserve helper cap repair.
 - [x] Author evidence: focused buffer, literal corpus, actual Go differential, save/enqueue integration, helper, and target builds.
 - [x] Luna review 01 found no correctness blockers; parent accepted the buffer fix.
-- [x] Commit, push, and open the documentation-reconciled fix as a PR stacked on PR18.
+- [x] Commit, push, and open the documentation-reconciled fix as [PR #19](https://github.com/ashutoshpw/inngest/pull/19), stacked on PR18.
 
 See [bounded preparation memory](references/bounded-preparation-memory.md). Data
 compaction retains at most 4,194,295 bytes and prepared output at most 4,194,304

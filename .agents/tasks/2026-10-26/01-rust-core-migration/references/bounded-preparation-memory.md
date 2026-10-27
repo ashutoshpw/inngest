@@ -187,9 +187,10 @@ is documented above. `git diff --check` and focused formatting pass.
 
 Luna review 01 independently passed six Rust tests, Rust formatting/helper checks,
 and focused Go actual-`Output()`/JSON parity in normal and race modes, with no
-correctness blockers. The Go race run instruments Go only, not the Rust helper
-process. The parent's acceptance does not change this increment's scope or the
-separate author evidence above. Current FFI SCREEN_NO_GO stands; Phase 1 remains
+correctness blockers. The parent accepted this increment, delivered in [PR #19](https://github.com/ashutoshpw/inngest/pull/19).
+The Go race run instruments Go only, not the Rust helper process. The parent's
+acceptance does not change this increment's scope or the separate author evidence
+above. Current FFI SCREEN_NO_GO stands; Phase 1 remains
 partial, Phase 2 open and bridge choice unset. Licensing reconciliation,
 other-platform runtime qualification, production admission/wiring,
 lifecycle/fencing, uncertain effects, crash/lease recovery and rollout gates
