@@ -24,7 +24,7 @@ Migrate the Inngest execution core from Go to Rust in behavior-preserving stages
 - [x] Locally validate the synchronous Redis dependency, exact script fallback and bounded socket faults.
 - [x] Record author evidence and prototype limits; final focused normal/race checks pass with no skips.
 - [x] Parent acceptance after independent Luna-max and Sol interop reviews; neither found blockers.
-- [ ] Commit and open the accepted internal prototype as a stacked PR; discovery/enqueue remains the next layer.
+- [x] Commit and open the accepted internal prototype as a stacked PR; discovery/enqueue remains the next layer.
 
 See [native SaveStep](references/native-save.md) for scope, test gates and evidence. Broad Phase 1 remains partial, Phase 2 open, bridge unset.
 
