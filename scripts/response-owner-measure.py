@@ -17,6 +17,7 @@ import statistics
 import subprocess
 import sys
 import tarfile
+import time
 from datetime import datetime, timezone
 
 
@@ -29,7 +30,13 @@ def sha(path):
 
 
 def write(path, data):
-    path.write_text(json.dumps(data, indent=2) + "\n")
+    # Preserve the previous complete record if a replacement write fails.
+    temporary = path.with_name(path.name + ".tmp")
+    with temporary.open("w") as stream:
+        stream.write(json.dumps(data, indent=2) + "\n")
+        stream.flush()
+        os.fsync(stream.fileno())
+    temporary.replace(path)
 
 
 DIAGNOSTIC_BUDGET = dict(
@@ -43,6 +50,116 @@ DIAGNOSTIC_BUDGET = dict(
 DIAGNOSTIC_SELECTORS = dict(
     lanes="native", profiles="controlled", workloads="run64k", concurrency="1"
 )
+SCREEN_BUDGET = dict(
+    post_setup_watchdog_ns=60_000_000_000,
+    row_context_ns=90_000_000_000,
+    test_timeout_ns=110_000_000_000,
+    outer_kill_ns=120_000_000_000,
+    request_deadline_ns=20_000_000_000,
+    resource_records=120000,
+)
+SCREEN_SELECTORS = dict(
+    lanes="go,native",
+    profiles="controlled",
+    workloads="run64,mixed8,run64k",
+    concurrency="1",
+)
+SCREEN_SECONDS = 900
+# Control reserve INSIDE the package budget; no measurement or retry in it.
+SCREEN_SHUTDOWN_GRACE = 6
+SCREEN_SEAL_RESERVE = 4
+
+
+def screen_selectors(args):
+    for key, value in SCREEN_SELECTORS.items():
+        if getattr(args, key) not in (None, value):
+            raise ValueError(
+                "screen requires exact go,native/controlled/run64,mixed8,run64k/C1 selectors"
+            )
+        setattr(args, key, value)
+
+
+class ScreenPackage:
+    """One monotonic budget from capture entry through final bookkeeping."""
+
+    def __init__(self):
+        self.start = time.monotonic()
+        self.out = None
+        self.process = None
+
+    def remaining(self):
+        remaining = (SCREEN_SECONDS - SCREEN_SHUTDOWN_GRACE - SCREEN_SEAL_RESERVE
+                     - (time.monotonic() - self.start))
+        if remaining <= 0:
+            raise ValueError("STOP: screen package wall budget expired (shutdown reserve)")
+        return remaining
+
+    def hard_remaining(self):
+        remaining = SCREEN_SECONDS - (time.monotonic() - self.start)
+        if remaining <= 0:
+            self.hard_expired()
+        return remaining
+
+    def terminate(self):
+        process = self.process
+        if process is None:
+            return None
+        result = dict(request="SIGUSR1", status="cooperative_exit")
+        # Include at most .5s for hard-kill reaping inside the control grace.
+        grace = max(.001, min(SCREEN_SHUTDOWN_GRACE - .5,
+                              self.hard_remaining() - SCREEN_SEAL_RESERVE - .5))
+        stop_by = time.monotonic() + grace
+        try:
+            os.killpg(process.pid, signal.SIGUSR1)
+        except ProcessLookupError:
+            pass
+        try:
+            process.wait(timeout=grace)
+        except subprocess.TimeoutExpired:
+            result.update(status="flush_unconfirmed_hard_kill", no_verdict=True)
+        # The direct parent can die first (e.g. Go test timeout). Its wait then
+        # says nothing about a surviving native descendant's diagnostic flush.
+        descendants_unconfirmed = False
+        while process.poll() is not None and time.monotonic() < stop_by:
+            try:
+                os.killpg(process.pid, 0)
+                descendants_unconfirmed = True
+            except ProcessLookupError:
+                descendants_unconfirmed = False
+                break
+            time.sleep(min(.05, max(.001, stop_by - time.monotonic())))
+        if descendants_unconfirmed:
+            result.update(status="flush_unconfirmed_hard_kill", no_verdict=True)
+        # A parent may have exited while a native descendant is still alive.
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        process.wait(timeout=min(.5, self.hard_remaining()))
+        self.process = None
+        return result
+
+    def expired(self, *_):
+        raise ValueError("STOP: screen package wall budget expired (shutdown reserve)")
+
+    def hard_expired(self, *_):
+        if self.process is not None:
+            try:
+                os.killpg(self.process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+        raise ValueError("STOP: package cleanup budget exhausted; diagnostic flush/seal unconfirmed; no verdict")
+
+
+def artifact_ledger(out):
+    write(
+        out / "artifacts.json",
+        {
+            str(p.relative_to(out)): sha(p)
+            for p in sorted(out.rglob("*"))
+            if p.is_file() and p.name not in ("artifacts.json", "CAPTURE_INCOMPLETE")
+        },
+    )
 
 
 def diagnostic_selectors(args):
@@ -94,6 +211,53 @@ def readable_host():
 
 
 def capture(args):
+    if getattr(args, "declare_only", False) and args.mode != "screen":
+        raise ValueError("declare-only requires screen mode")
+    if args.mode != "screen":
+        return capture_bundle(args)
+    package = ScreenPackage()
+    screen_selectors(args)
+    # Linux capture host: the alarm also bounds source archiving, version
+    # commands, derivation and hashing, rather than just the measurement child.
+    previous = signal.signal(signal.SIGALRM, package.expired)
+    signal.setitimer(signal.ITIMER_REAL, package.remaining())
+    try:
+        capture_bundle(args, package)
+    except BaseException as exc:
+        print(f"STOP: capture failed: {exc}; preserving incomplete bundle", file=sys.stderr)
+        # Failure cleanup shares the original hard deadline, including sealing.
+        signal.signal(signal.SIGALRM, package.hard_expired)
+        signal.setitimer(signal.ITIMER_REAL, package.hard_remaining())
+        stop = package.terminate()
+        if package.out is not None:
+            # Invalidate derived output before any further artifact write.
+            if (package.out / "derived.json").exists():
+                (package.out / "derived.json").rename(package.out / "unaccepted-derived.json")
+            # Failure sealing consumes only the reserved control budget.
+            path = package.out / "manifest.json"
+            try:
+                manifest = json.loads(path.read_text()) if path.exists() else {}
+            except (OSError, ValueError):
+                # An alarm can interrupt the manifest write itself. Preserve
+                # those bytes as well as the original stop reason.
+                if path.exists():
+                    path.rename(package.out / "interrupted-manifest.json")
+                manifest = {"interrupted_manifest": True}
+            manifest.update(
+                mode="screen",
+                stop_reason=str(exc),
+                shutdown=stop,
+                package_elapsed_seconds=time.monotonic() - package.start,
+            )
+            write(path, manifest)
+            artifact_ledger(package.out)
+        raise
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, 0)
+        signal.signal(signal.SIGALRM, previous)
+
+
+def capture_bundle(args, package=None):
     if args.mode == "diagnostic":
         diagnostic_selectors(args)
     root = Path(
@@ -105,6 +269,11 @@ def capture(args):
     if root == out or root in out.parents:
         raise ValueError("artifact bundle must be outside checkout")
     out.mkdir(mode=0o700)  # exclusive; preserve every earlier failure
+    # Removed only after all final writes/checks succeed; failed sealing must
+    # never leave apparently accepted rows/manifest eligible for derivation.
+    (out / "CAPTURE_INCOMPLETE").write_text("STARTED; no accepted verdict\n")
+    if package:
+        package.out = out
     binary = Path(args.binary).resolve()
     native = (
         root
@@ -148,9 +317,20 @@ def capture(args):
         "source_manifest_sha256": sha(out / "source-manifest.json"),
         "policy": "UNCALIBRATED: resource p95<=1.10, closed-loop throughput including input preparation/validation>=0.90, separate owner service rate (inverse mean resource duration at fixed C)>=0.90, whole host peak RSS<=1.20; median pass and >=2/3 runs for every metric in every cell; sparse RSS INCONCLUSIVE; no process-transport selection",
         "commands": [],
+        "child_evidence_required": args.mode != "diagnostic",
         "capture_argv": sys.argv,
         "reducer_sha256": sha(Path(__file__)),
         "diagnostic_budget": DIAGNOSTIC_BUDGET if args.mode == "diagnostic" else None,
+        **(
+            dict(
+                screen_budget=SCREEN_BUDGET,
+                package_budget_seconds=SCREEN_SECONDS,
+                declaration_only=args.declare_only,
+                shutdown_grace_seconds=SCREEN_SHUTDOWN_GRACE,
+                seal_reserve_seconds=SCREEN_SEAL_RESERVE,
+            )
+            if package else {}
+        ),
         "preflight_scope": (
             "none in diagnostic capture; standalone focused functional/capture-control checks required; no Valkey or extra measurement rows"
             if args.mode == "diagnostic"
@@ -162,7 +342,19 @@ def capture(args):
         manifest["policy"] = (
             "DIAGNOSTIC ONLY: capture completeness and budget evidence; no comparative rates/percentiles/ratios, gate verdict or campaign PASS"
         )
+    if package:
+        manifest["policy"] += (
+            "; FIXED SCREEN: complete all 18 rows/three seeds; independent rejection "
+            "survives memory INCONCLUSIVE; no overall PASS, transport choice or CPU-consumption claim"
+        )
     write(out / "manifest.json", manifest)
+    watched = [root / name for name in sources] + [binary, native]
+    signatures = {
+        p: (p.stat().st_mtime_ns, p.stat().st_size, p.stat().st_ino)
+        for p in watched
+    } if package else {}
+    if package and any(sha(root / name) != digest for name, digest in sources.items()):
+        raise ValueError("STOP: provenance changed during screen setup")
     env = dict(os.environ, GOMAXPROCS="8")
     env.pop("RESPONSE_MEASURE_CHILD", None)
     env.pop("RESPONSE_MEASURE_ROW_PATH", None)
@@ -171,7 +363,10 @@ def capture(args):
         ["rustc", "+1.94.0", "--version"],
         ["cc", "--version"],
     ]:
-        r = subprocess.run(argv, capture_output=True, text=True, cwd=root)
+        r = subprocess.run(
+            argv, capture_output=True, text=True, cwd=root,
+            **(dict(timeout=package.remaining()) if package else {}),
+        )
         manifest["commands"].append(
             {"argv": argv, "exit": r.returncode, "output": r.stdout + r.stderr}
         )
@@ -188,6 +383,12 @@ def capture(args):
     ]
     if args.mode == "diagnostic":
         argv[3] = "-test.timeout=260s"
+    if package:
+        remaining = package.remaining()
+        argv[3] = f"-test.timeout={remaining + SCREEN_SHUTDOWN_GRACE:.9f}s"
+        argv.append(f"-response-measure-package-remaining={remaining:.9f}s")
+        if args.declare_only:
+            argv.append("-response-measure-declare-only")
     for key in ["lanes", "profiles", "workloads", "concurrency"]:
         if getattr(args, key):
             argv.append(f"-response-measure-{key}={getattr(args, key)}")
@@ -216,11 +417,83 @@ def capture(args):
             )
         },
         "start_utc": datetime.now(timezone.utc).isoformat(),
+        "status": "STARTED",
     }
     manifest["commands"].append(command)
     write(out / "manifest.json", manifest)
-    with open(out / "run.log", "wb") as log:
-        if args.mode == "diagnostic":
+    with open(out / "run.log", "wb", buffering=0) as log:
+        if package:
+            process = subprocess.Popen(
+                argv, cwd=command["cwd"], env=env,
+                stdout=subprocess.PIPE, stderr=subprocess.STDOUT, start_new_session=True,
+            )
+            package.process = process
+            os.set_blocking(process.stdout.fileno(), False)
+
+            def drain_output():
+                # Stream bounded chunks and observe actual filesystem errors;
+                # passing an FD straight to the child cannot report its writes.
+                while True:
+                    try:
+                        chunk = os.read(process.stdout.fileno(), 65536)
+                    except BlockingIOError:
+                        return False
+                    if not chunk:
+                        return True
+                    if log.write(chunk) != len(chunk):
+                        raise OSError("short run.log write; capture incomplete")
+
+            try:
+                next_provenance = time.monotonic()
+                while process.poll() is None:
+                    try:
+                        process.wait(timeout=min(0.25, package.remaining()))
+                    except subprocess.TimeoutExpired:
+                        pass
+                    drain_output()
+                    if time.monotonic() >= next_provenance:
+                        next_provenance = time.monotonic() + 1
+                        for p, signature in signatures.items():
+                            current = p.stat()
+                            if (current.st_mtime_ns, current.st_size, current.st_ino) != signature:
+                                raise ValueError(f"STOP: provenance changed during screen: {p}")
+                        current_names = set(subprocess.check_output(
+                            ["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard"],
+                            cwd=root, timeout=package.remaining()).split(b"\0")) - {b""}
+                        if current_names != set(names):
+                            raise ValueError("STOP: source path set changed during screen")
+                if not drain_output():
+                    raise ValueError("STOP: child output pipe incomplete after parent exit")
+                r = process
+            finally:
+                failure = sys.exc_info()[1]
+                if failure is not None:
+                    signal.signal(signal.SIGALRM, package.hard_expired)
+                    signal.setitimer(signal.ITIMER_REAL, package.hard_remaining())
+                    command["stop_reason"] = str(failure)
+                    command["shutdown"] = package.terminate()
+                elif process.returncode:
+                    command["shutdown"] = package.terminate()
+                else:
+                    package.process = None
+                output_error = None
+                try:
+                    if not drain_output():
+                        raise ValueError("STOP: child output flush unconfirmed; no verdict")
+                    log.flush()
+                    os.fsync(log.fileno())
+                except (OSError, ValueError) as exc:
+                    output_error = exc
+                    command["output_error"] = str(exc)
+                finally:
+                    process.stdout.close()
+                command.update(exit=process.returncode,
+                               status="INCOMPLETE" if failure or output_error or process.returncode else "COMPLETE",
+                               end_utc=datetime.now(timezone.utc).isoformat())
+                write(out / "manifest.json", manifest)
+                if output_error is not None and failure is None:
+                    raise output_error
+        elif args.mode == "diagnostic":
             with subprocess.Popen(
                 argv,
                 cwd=command["cwd"],
@@ -242,28 +515,31 @@ def capture(args):
             r = subprocess.run(
                 argv, cwd=command["cwd"], env=env, stdout=log, stderr=subprocess.STDOUT
             )
-    command.update(exit=r.returncode, end_utc=datetime.now(timezone.utc).isoformat())
+    command.update(exit=r.returncode, status="COMPLETE" if r.returncode == 0 else "INCOMPLETE", end_utc=datetime.now(timezone.utc).isoformat())
     manifest["host_after"] = readable_host()
     changed = [
         name
         for name, digest in sources.items()
         if not (root / name).is_file() or sha(root / name) != digest
     ]
+    if package:
+        current_names = set(subprocess.check_output(
+            ["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard"],
+            cwd=root, timeout=package.remaining()).split(b"\0")) - {b""}
+        changed += [os.fsdecode(n) for n in current_names - set(names)]
     manifest.update(
         source_changed=changed,
         binary_changed=sha(binary) != manifest["binary_sha256"],
         native_changed=sha(native) != manifest["native_static_sha256"],
     )
+    if package:
+        package.remaining()
+        # Snapshot before derivation. The alarm remains armed through both the
+        # reducer and final ledger; any expiry invalidates and seals the bundle.
+        manifest["package_elapsed_seconds"] = time.monotonic() - package.start
     write(out / "manifest.json", manifest)
     # Hash raw logs/commands/rows even on failure; no favorable-only filtering.
-    write(
-        out / "artifacts.json",
-        {
-            str(p.relative_to(out)): sha(p)
-            for p in sorted(out.rglob("*"))
-            if p.is_file() and p.name != "artifacts.json"
-        },
-    )
+    artifact_ledger(out)
     if (
         r.returncode
         or changed
@@ -273,16 +549,12 @@ def capture(args):
         raise ValueError(f"STOP: execution/source failure; preserve {out}")
     if args.mode == "diagnostic":
         diagnostic_result(out)
-    elif args.mode != "plan":
-        derive(out, out / "derived.json")
-    write(
-        out / "artifacts.json",
-        {
-            str(p.relative_to(out)): sha(p)
-            for p in sorted(out.rglob("*"))
-            if p.is_file() and p.name != "artifacts.json"
-        },
-    )
+    elif args.mode != "plan" and not (package and args.declare_only):
+        derive(out, out / "derived.json", capturing=True)
+    artifact_ledger(out)
+    if package:
+        package.remaining()
+    (out / "CAPTURE_INCOMPLETE").unlink()
     print(out)
 
 
@@ -422,6 +694,127 @@ def summarize_cell(key, pairs):
     return cell
 
 
+def screen_selection(selection):
+    """Validate the complete fixed declaration before deriving any cell."""
+    expected = {
+        (seed, workload, lane)
+        for seed in (26011, 26012, 26013)
+        for workload in ("run64", "mixed8", "run64k")
+        for lane in ("go", "native")
+    }
+    if len(selection) != 18:
+        raise ValueError("STOP: incomplete declared screen (18 rows required)")
+    seen = set()
+    for j, row in enumerate(selection):
+        key = (row.get("seed"), row.get("workload"), row.get("lane"))
+        if (
+            key not in expected
+            or key in seen
+            or row != dict(
+                preflight=False, seed=key[0], workload=key[1], lane=key[2],
+                profile="controlled", concurrency=1, count=500,
+                warmups_per_slot=32, first_only=False, first_pair=0, order=j,
+            )
+            or row["seed"] != (26011, 26012, 26013)[j // 6]
+        ):
+            raise ValueError("STOP: wrong/duplicate fixed screen row")
+        seen.add(key)
+    for a, b in zip(selection[::2], selection[1::2]):
+        if (
+            (a["seed"], a["workload"]) != (b["seed"], b["workload"])
+            or a["lane"] == b["lane"]
+        ):
+            raise ValueError("STOP: screen lanes must be adjacent paired cells")
+    return selection
+
+
+def validate_screen_raw(row, selected, path):
+    samples, bounded, total = validate_samples(row, selected, path)
+    if (
+        not bounded or row.get("stop_reason")
+        or row.get("capture_budget") != SCREEN_BUDGET
+        or row.get("rss_interval_ns") != 1_000_000
+    ):
+        raise ValueError(f"STOP: wrong/failed screen capture controls {path}")
+    for sample in samples:
+        ident = sample["id"]
+        phase = "first" if ident == 0 else ("warmup" if ident <= selected["warmups_per_slot"] else "steady")
+        if sample["phase"] != phase or sample["worker"] != 0:
+            raise ValueError(f"STOP: wrong screen phase/worker {path}")
+    if len([r for r in row.get("resources", []) if r.get("stage") == "sample"]) > 120000:
+        raise ValueError(f"STOP: screen sampler cap exceeded {path}")
+    # Missing lifecycle/retention evidence prevents a completed screen. Sparse
+    # sampling alone remains a memory-only INCONCLUSIVE result.
+    if input_retention_status(row, total) != "BOUNDED_INPUTS":
+        raise ValueError(f"STOP: screen input retention incomplete {path}")
+    if selected["count"]:
+        steady = [s for s in samples if s["phase"] == "steady"]
+        first, last = min(s["slot_start_ns"] for s in steady), max(s["slot_end_ns"] for s in steady)
+        _, _, reasons = rss_evidence(row, samples, first, last)
+        if any(not reason.startswith("sample: insufficient") for reason in reasons):
+            raise ValueError(f"STOP: incomplete screen lifecycle resources {path}: {reasons}")
+
+
+def validate_child_evidence(path):
+    command_path = path.with_name(path.stem + "-command.json")
+    log_path = path.with_suffix(".log")
+    try:
+        command = json.loads(command_path.read_text())
+        if (command.get("status") != "COMPLETE" or command.get("error") != "<nil>"
+                or not command.get("argv") or not command.get("start_utc")
+                or not command.get("end_utc") or not log_path.is_file()):
+            raise ValueError("incomplete command/log")
+        # Opening both artifacts rejects unreadable evidence as well as absence.
+        with log_path.open("rb") as stream:
+            stream.read(1)
+    except (OSError, ValueError) as exc:
+        raise ValueError(f"STOP: missing/failed child command/log evidence {path}: {exc}") from exc
+
+
+def validate_screen_bundle(out, manifest, selection):
+    screen_selection(selection)
+    elapsed = manifest.get("package_elapsed_seconds")
+    if (
+        manifest.get("declaration_only") or manifest.get("stop_reason")
+        or manifest.get("screen_budget") != SCREEN_BUDGET
+        or manifest.get("package_budget_seconds") != SCREEN_SECONDS
+        or manifest.get("shutdown_grace_seconds") != SCREEN_SHUTDOWN_GRACE
+        or manifest.get("seal_reserve_seconds") != SCREEN_SEAL_RESERVE
+        or not usable_rss(elapsed) or elapsed > SCREEN_SECONDS
+        or not manifest.get("commands")
+    ):
+        raise ValueError("STOP: incomplete/expired screen package")
+    validate_child_evidence(out / "rows/preflight.json")
+    preflight = json.loads((out / "rows/preflight-command.json").read_text())
+    if preflight.get("error") != "<nil>" or not (out / "rows/preflight.log").is_file():
+        raise ValueError("STOP: failed/missing screen functional preflight")
+    seen = set()
+    for selected in selection:
+        key = (selected["workload"], selected["lane"])
+        if key in seen:
+            continue
+        j = len(seen)
+        seen.add(key)
+        port = dict(selected, preflight=True, count=0, warmups_per_slot=0,
+                    first_only=True, first_pair=0, order=j)
+        path = out / f"rows/port-preflight-{j:03d}.json"
+        validate_child_evidence(path)
+        raw = json.loads(path.read_text())
+        if raw.get("row") != port or raw.get("error"):
+            raise ValueError(f"STOP: wrong/failed screen port preflight {path}")
+        validate_screen_raw(raw, port, path)
+
+
+def screen_decision(cell):
+    # Aggregate memory status deliberately keeps its existing meaning; a valid
+    # latency/rate rejection must not disappear behind sparse RSS evidence.
+    if any(cell[m]["status"] == "FAIL" for m in ("p95", "throughput", "owner_service_rate", "memory")):
+        return "NO_GO"
+    if cell["status"] == "PASS":
+        return "PROMISING_NEEDS_BROADER_GATES"
+    return "INCONCLUSIVE"
+
+
 def validate_samples(row, selected, p):
     expected_results = {
         "retryable": "retryable_step_error",
@@ -479,30 +872,47 @@ def validate_samples(row, selected, p):
     return samples, bounded, n
 
 
-def derive(out, destination):
+def derive(out, destination, *, capturing=False):
     destination = destination.resolve()
     if destination.exists():
         raise ValueError("STOP: derived destination already exists; choose a new path")
+    if (out / "CAPTURE_INCOMPLETE").exists() and not capturing:
+        raise ValueError("STOP: incomplete capture/failure seal; no verdict")
     manifest = json.loads((out / "manifest.json").read_text())
     if manifest["mode"] == "diagnostic":
         raise ValueError(
             "STOP: diagnostic capture has no comparative derivation or campaign verdict"
         )
     if (
-        any(c.get("exit", 1) != 0 for c in manifest["commands"])
+        manifest.get("stop_reason")
+        or any(c.get("exit", 1) != 0 for c in manifest["commands"])
         or manifest.get("source_changed")
         or manifest.get("binary_changed")
         or manifest.get("native_changed")
     ):
         raise ValueError("STOP: failed command or changed source/binary")
     selection = json.loads((out / "rows/selection.json").read_text())
+    if manifest["mode"] == "screen":
+        validate_screen_bundle(out, manifest, selection)
+    if manifest.get("child_evidence_required") and manifest["mode"] != "screen":
+        validate_child_evidence(out / "rows/preflight.json")
+        seen = set()
+        for selected in selection:
+            key = (selected["profile"], selected["workload"], selected["lane"])
+            if key not in seen:
+                validate_child_evidence(out / f"rows/port-preflight-{len(seen):03d}.json")
+                seen.add(key)
     rows = []
     for j, selected in enumerate(selection):
         p = out / f"rows/row-{j:03d}.json"
+        if manifest["mode"] == "screen" or manifest.get("child_evidence_required"):
+            validate_child_evidence(p)
         row = json.loads(p.read_text())
         if row.get("error") or row["row"] != selected:
             raise ValueError(f"STOP: wrong/missing/contaminated row {p}")
         samples, bounded, n = validate_samples(row, selected, p)
+        if manifest["mode"] == "screen":
+            validate_screen_raw(row, selected, p)
         durations = sorted(
             s["resource_ns"] - s["start_ns"] for s in samples if s["phase"] == "steady"
         )
@@ -600,7 +1010,7 @@ def derive(out, destination):
             continue
         key = (r["seed"], r["workload"], r["profile"], r["concurrency"], "go")
         if key not in index:
-            if manifest["mode"] == "campaign":
+            if manifest["mode"] in ("campaign", "screen"):
                 raise ValueError("STOP: missing paired baseline")
             continue
         go = index[key]
@@ -630,8 +1040,8 @@ def derive(out, destination):
                 ),
             )
         )
-    if manifest["mode"] == "campaign":
-        if (
+    if manifest["mode"] in ("campaign", "screen"):
+        if manifest["mode"] == "campaign" and (
             len(rows) != 180
             or sum(r["count"] for r in rows) != 360000
             or len(selection) != 480
@@ -646,6 +1056,8 @@ def derive(out, destination):
             if len(pairs) != 3 or {p["seed"] for p in pairs} != {26011, 26012, 26013}:
                 raise ValueError("STOP: missing seed pair")
             cell = summarize_cell(key, pairs)
+            if manifest["mode"] == "screen":
+                cell["screen_decision"] = screen_decision(cell)
             result["cells"].append(cell)
         result["status"] = (
             "UNCALIBRATED_PASS"
@@ -653,6 +1065,16 @@ def derive(out, destination):
             and all(c["status"] == "PASS" for c in result["cells"])
             else "UNCALIBRATED_NOT_PASS"
         )
+        if manifest["mode"] == "screen":
+            decisions = [c["screen_decision"] for c in result["cells"]]
+            result["screen_decision"] = (
+                "NO_GO" if "NO_GO" in decisions else
+                "PROMISING_NEEDS_BROADER_GATES" if all(d == "PROMISING_NEEDS_BROADER_GATES" for d in decisions) else
+                "INCONCLUSIVE"
+            )
+            result["status"] = "SCREEN_" + result["screen_decision"]
+            result["unmeasured"] = ["C8", "Valkey", "retryable", "enqueue-error", "persistent-process", "native-arm64"]
+            result["limits"] = "Fixed rejection screen only; no overall PASS, transport choice, activation or CPU-consumption claim; service rate is inverse mean wall occupancy."
     # Exclusive output: never rewrite a historical derived result or raw bundle.
     with destination.open("x") as stream:
         stream.write(json.dumps(result, indent=2) + "\n")
@@ -737,8 +1159,9 @@ def main():
     sub = parser.add_subparsers(dest="action", required=True)
     run = sub.add_parser("capture")
     run.add_argument(
-        "--mode", choices=["plan", "smoke", "campaign", "diagnostic"], required=True
+        "--mode", choices=["plan", "smoke", "campaign", "screen", "diagnostic"], required=True
     )
+    run.add_argument("--declare-only", action="store_true", help="screen declaration only; execute no preflights or rows")
     run.add_argument("--binary", required=True)
     run.add_argument("--out", required=True)
     run.add_argument("--go", default="/home/ashutosh/.cache/go1.26.4/go/bin/go")
@@ -759,7 +1182,7 @@ def main():
             if args.action == "capture"
             else derive(args.out.resolve(), args.output)
         )
-    except (ValueError, OSError, KeyError) as exc:
+    except (ValueError, OSError, KeyError, subprocess.TimeoutExpired) as exc:
         print(exc, file=sys.stderr)
         return 1
     return 0
