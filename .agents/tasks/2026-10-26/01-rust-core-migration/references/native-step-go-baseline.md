@@ -96,6 +96,10 @@ Retain earlier failed local logs in `/home/ashutosh/.cache/native-step-baseline/
 
 `scripts/check-plan-status.sh` still fails on the pre-existing invalid `docs/plans/run-ai-debugging.md` status `Implemented — pending staging review`; see local plan-status.log. This file is unchanged. `git diff --check` passes.
 
+## Delivery metadata
+
+PR [#15](https://github.com/ashutoshpw/inngest/pull/15), `test(state): freeze native step persistence interoperability`, targets `t3/fixed-screen-mode` (PR #14) from `t3/native-step-persistence-baseline`. The opening implementation commit `4e1cfa249680232a1d2fa3a373ee6f065ce2cf43` is based on `903288e1b18fcb8dcb99e9d64500ff0ba4b48256`. The PR is linked to the delivery child and parent migration thread. Opening snapshot: open, non-draft, merge state clean, no review decision, no check runs. A follow-up commit records this metadata; the next fresh-runtime replay layer will base on the final PR #15 commit.
+
 ## Remaining gates
 
 Fresh Go runtime replay is the next layer. SDK compatibility policy, broader recovery, process/lease/fencing/crash durability, native dependency qualification, arm64 execution, bridge choice, license reconciliation, and production activation remain open. All earlier accepted negative screen evidence remains intact. No benchmarks, Rust source/dependency changes, worker or production seam were added.
