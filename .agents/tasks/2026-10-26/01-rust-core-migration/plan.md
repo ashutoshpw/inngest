@@ -57,6 +57,24 @@ whole-process memory remains unbounded. PR18 still has separate
 preparation/save and enqueue adapters orchestrated by Go tests; it is not a
 complete native response owner. Existing migration gates remain open.
 
+## Test-only Go StepRun input binding (2026-10-27)
+
+- [x] Verify clean assigned worktree/no unique commits; fast-forward to PR19 `4a870dd35`.
+- [x] Audit actual response/RunContext sources and retained owner witnesses.
+- [x] Add private prospective source binding and actual SaveStep observations; reuse existing literals.
+- [x] Finish focused normal/race checks and record source/log hashes.
+- [x] Repair review01 source-preference coverage and narrow snapshot claims; retain 139 baseline checks and four controls, add four distinct-response cases and four controls.
+- [x] Independent Luna review02 found no blockers; parent accepted the narrowed test-only contract. Author and independent 144-record normal/race runs are reported separately; Luna inspected eight existing mutation logs without rerunning them.
+- [x] Commit and push the accepted tests/evidence; open [PR #20](https://github.com/ashutoshpw/inngest/pull/20) against PR19's `t3/native-prepare-memory-bound` branch using the required Description, Release note, and Migration note sections. Link PR19 and PR20 to the delivery thread.
+
+This is prospective test evidence only; it does not claim a complete Go owner,
+production selector, native adapter, full source coverage or ownership transfer.
+Native follow-on requires a parent architecture decision: prove pre-effect
+eligibility excludes relevant lifecycle/capacity/tracing effects, or preserve them
+through a single ordered Go handoff. Neither is selected or implemented here.
+See [input binding](references/step-run-input-binding.md). Phase 1 partial,
+Phase 2 open, bridge unset; PR18 remains separate native adapters, FFI NO_GO remains.
+
 ## Delivery
 
 Use dedicated worktrees and small stacked PRs. Verify and record the first layer's base before implementation; each later layer targets its preceding branch. Follow the repository's conventional-title and PR-text rules in [validation and rollout](references/validation-rollout.md).
@@ -105,6 +123,8 @@ Use dedicated worktrees and small stacked PRs. Verify and record the first layer
 - [ ] Supported-target builds, compatible persisted state, single ownership, staged rollout, and rollback are validated before Go retirement.
 
 ## References
+
+- [StepRun input binding](references/step-run-input-binding.md) — prospective Go-only source facts, actual effect observations, authoring gate, checks and limits.
 
 - [Native enqueue](references/native-enqueue.md) — bounded discovery implementation, provenance, validation and open gates.
 

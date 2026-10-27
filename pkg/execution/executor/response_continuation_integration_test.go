@@ -39,7 +39,9 @@ import (
 // This reuses every literal and assertion at the original Go owner boundary.
 // Only the decision owner changes; no fixture's Prepared field is consumed.
 func TestResponseContinuationIntegratedContract(t *testing.T) {
-	runResponseContinuationContract(t, runNativeResponse)
+	runResponseContinuationContract(t, func(_ *testing.T, ctx context.Context, e *executor, i *runInstance, resp *state.DriverResponse) error {
+		return runNativeResponse(ctx, e, i, resp)
+	})
 }
 
 // Whole-batch rejection is observed before metadata, history or any real port.

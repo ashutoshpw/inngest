@@ -33,12 +33,21 @@ type stagedSaveOutcome struct {
 	pending bool
 	err     error
 }
+
+// Actual port arguments and return values, observed only when SaveStep runs.
+type stagedSaveObservation struct {
+	runID          sv2.ID
+	stepID, output string
+	metadataDelta  int
+	result         stagedSaveOutcome
+}
 type stagedBatchStore struct {
 	*opcodePlanRecordingRunService
 	mu            sync.Mutex
 	writes        map[string]string
 	saveDeltas    map[string]int
 	outcomes      map[string]stagedSaveOutcome
+	saves         []stagedSaveObservation
 	metadataErr   error
 	afterMetadata func()
 	beforeSave    func(string)
@@ -51,7 +60,7 @@ func (s *stagedBatchStore) UpdateMetadata(ctx context.Context, id sv2.ID, update
 	}
 	return s.metadataErr
 }
-func (s *stagedBatchStore) SaveStep(ctx context.Context, _ sv2.ID, id string, output []byte) (bool, error) {
+func (s *stagedBatchStore) SaveStep(ctx context.Context, runID sv2.ID, id string, output []byte) (bool, error) {
 	if s.beforeSave != nil {
 		s.beforeSave(id)
 	}
@@ -59,6 +68,7 @@ func (s *stagedBatchStore) SaveStep(ctx context.Context, _ sv2.ID, id string, ou
 	s.writes[id] = string(output)
 	s.saveDeltas[id] = state.MetadataSizeDeltaFromContext(ctx)
 	result := s.outcomes[id]
+	s.saves = append(s.saves, stagedSaveObservation{runID: runID, stepID: id, output: string(output), metadataDelta: state.MetadataSizeDeltaFromContext(ctx), result: result})
 	s.mu.Unlock()
 	s.events.record("handler:save:" + id)
 	return result.pending, result.err
