@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "review_acceptance": "parent-accepted:readinessreview03+clockaccountingreview02+P3precedencereview01+runnerstopreview01+declarationreview02",
+  "authorization": {
+    "id": "rust-native-oneshot-pilot-05",
+    "scope": "oneshot-capability-60-plus-8",
+    "declaration_sha256": "51f2d88d4d011eeba69de1628f028ffa37413d110aa8773883ddd319c40aa033",
+    "out": "/home/ashutosh/.cache/oneshot-capability-pilot-05-20261027/capture",
+    "claim": "/home/ashutosh/.cache/oneshot-capability-pilot-05-20261027/rust-native-oneshot-pilot-05.claim",
+    "expires_unix": 1793123105,
+    "attempts": 1
+  }
+}
