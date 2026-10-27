@@ -61,6 +61,12 @@ type nativeReplayFixture struct {
 // Replaces drained Go owners against surviving stores. No process crash, active
 // lease recovery, fencing, exactly-once, or atomic SaveStep+enqueue claim follows.
 func TestRecoveryReplaysNativeStepBaseline(t *testing.T) {
+	runRecoveryNativeStep(t, nil)
+}
+
+// Test-private effect substitution: B always constructs ordinary Go owners.
+// Native implementations consume source inputs, never a captured enqueue recipe.
+func runRecoveryNativeStep(t *testing.T, configure func(*testing.T, *queuehelper.ValkeyContainer, statev2.ID, bool, *nativeReplaySave, *nativeReplayDiscovery)) {
 	raw, err := os.ReadFile(filepath.Join(recoveryFixtureDir, "native-boundary.json"))
 	require.NoError(t, err)
 	var f nativeReplayFixture
@@ -141,6 +147,9 @@ func TestRecoveryReplaysNativeStepBaseline(t *testing.T) {
 			saves := &nativeReplaySave{RunService: a.state, observations: make(chan nativeReplaySaveObservation, 10), read: func(c context.Context) nativeReplayReadout { return readNativeReplayStore(c, v, f) }}
 			beforeErr := errors.New("fixture: discovery enqueue unavailable before commit")
 			fault := &nativeReplayDiscovery{Queue: a.queue, mode: tc.Fault, beforeErr: beforeErr, observations: make(chan nativeReplayEnqueueObservation, 10), read: func(c context.Context) nativeReplayReadout { return readNativeReplayStore(c, v, f) }, canceledClient: effects}
+			if configure != nil {
+				configure(t, v, id, keyQueues, saves, fault)
+			}
 			a.makeExecutor(t, ctx, fault, executorpkg.WithStateManager(saves))
 			idempotency := "sdk-response-recovery-v1"
 			_, md, err := a.exec.Schedule(ctx, execution.ScheduleRequest{Function: fn, RunID: &id.RunID, At: &now, IdempotencyKey: &idempotency, AccountID: id.Tenant.AccountID, WorkspaceID: id.Tenant.EnvID, AppID: id.Tenant.AppID,
@@ -189,7 +198,11 @@ func TestRecoveryReplaysNativeStepBaseline(t *testing.T) {
 			} else {
 				require.True(t, queue.IsAlwaysRetryable(resultA.Err))
 				require.EqualError(t, resultA.Err, "error handling generator response: error enqueueing discovery step: "+observation.Returned.Error())
-				if tc.Fault == "before" {
+				if fault.nativeEnqueue != nil {
+					// Native adapter classes are checked at the process boundary;
+					// they are not the Go-only injected sentinel/canceled command.
+					require.Error(t, observation.Returned)
+				} else if tc.Fault == "before" {
 					require.Same(t, beforeErr, observation.Returned)
 				} else {
 					require.ErrorIs(t, observation.Returned, context.Canceled)
@@ -342,10 +355,15 @@ type nativeReplaySave struct {
 	statev2.RunService
 	observations chan nativeReplaySaveObservation
 	read         func(context.Context) nativeReplayReadout
+	nativeSave   func(context.Context, statev2.ID, string, []byte) (bool, error)
 }
 
 func (s *nativeReplaySave) SaveStep(ctx context.Context, id statev2.ID, step string, data []byte) (bool, error) {
-	pending, err := s.RunService.SaveStep(ctx, id, step, data)
+	save := s.RunService.SaveStep
+	if s.nativeSave != nil {
+		save = s.nativeSave
+	}
+	pending, err := save(ctx, id, step, data)
 	o := nativeReplaySaveObservation{ID: id, Step: step, Output: string(data), Job: queue.JobIDFromContext(ctx), MetadataDelta: state.MetadataSizeDeltaFromContext(ctx), Pending: pending, Err: err, ContextErr: ctx.Err()}
 	o.After = s.read(ctx)
 	s.observations <- o
@@ -365,15 +383,29 @@ type nativeReplayDiscovery struct {
 	read           func(context.Context) nativeReplayReadout
 	canceledClient rueidis.Client
 	intercepted    atomic.Bool
+	nativeEnqueue  func(context.Context, queue.Item, time.Time, queue.EnqueueOpts) (bool, error)
 }
 
 func (q *nativeReplayDiscovery) Enqueue(ctx context.Context, item queue.Item, at time.Time, opts queue.EnqueueOpts) error {
 	edge, ok := item.Payload.(queue.PayloadEdge)
-	if !ok || item.Kind != queue.KindEdge || edge.Edge.Outgoing != "checkpoint-output" || !q.intercepted.CompareAndSwap(false, true) {
+	if !ok || item.Kind != queue.KindEdge || edge.Edge.Outgoing != "checkpoint-output" {
+		return q.Queue.Enqueue(ctx, item, at, opts)
+	}
+	// The Go-only baseline injects one fault. Native matching work always stays
+	// native, including subsequent calls; never fall back after native effects.
+	if q.nativeEnqueue == nil && !q.intercepted.CompareAndSwap(false, true) {
 		return q.Queue.Enqueue(ctx, item, at, opts)
 	}
 	o := nativeReplayEnqueueObservation{Before: q.read(ctx), LogicalJob: *item.JobID, Group: item.GroupID, ContextGroup: state.GroupIDFromContext(ctx)}
-	if q.mode == "before" {
+	if q.nativeEnqueue != nil {
+		committed, err := q.nativeEnqueue(ctx, item, at, opts)
+		o.Returned = err
+		if committed {
+			o.After = q.read(ctx)
+		} else {
+			o.CommitErr = err
+		}
+	} else if q.mode == "before" {
 		o.Returned = q.beforeErr
 	} else {
 		o.CommitErr = q.Queue.Enqueue(ctx, item, at, opts)

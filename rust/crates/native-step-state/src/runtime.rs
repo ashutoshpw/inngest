@@ -1,4 +1,6 @@
-use crate::{PreparationError, SAVE_LUA, SAVE_SHA1, SaveRequest};
+use crate::{
+    ENQUEUE_LUA, ENQUEUE_SHA1, EnqueueRequest, PreparationError, SAVE_LUA, SAVE_SHA1, SaveRequest,
+};
 use redis::IntoConnectionInfo;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -99,6 +101,25 @@ pub struct SaveOutcome {
     pub last_failure: Option<&'static str>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+pub enum EnqueueClass {
+    Enqueued,
+    Duplicate,
+    ExcludedSingletonConflict,
+    Failed,
+    Stopped,
+}
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EnqueueOutcome {
+    pub class: EnqueueClass,
+    pub stored_id: String,
+    pub existing_run_id: Option<String>,
+    pub result: Option<i64>,
+    pub write_status: WriteStatus,
+    pub last_failure: Option<&'static str>,
+}
+
 pub struct Runtime {
     config: StoreConfig,
     client: redis::Client,
@@ -140,7 +161,11 @@ impl Runtime {
         })
     }
 
-    fn command(&mut self, ctx: &CallContext, cmd: &redis::Cmd) -> Result<Vec<i64>, Failure> {
+    fn command<T: redis::FromRedisValue>(
+        &mut self,
+        ctx: &CallContext,
+        cmd: &redis::Cmd,
+    ) -> Result<T, Failure> {
         let stopped = || Failure {
             status: WriteStatus::NotSent,
             class: "stopped",
@@ -170,7 +195,7 @@ impl Runtime {
             .set_write_timeout(Some(write))
             .map_err(|_| stopped())?;
         // Exactly one request. redis::Connection has no reconnection/write retry.
-        let reply = cmd.query::<Vec<i64>>(connection);
+        let reply = cmd.query::<T>(connection);
         match reply {
             Ok(value) => Ok(value),
             Err(e) => {
@@ -196,6 +221,77 @@ impl Runtime {
                 }
             }
         }
+    }
+
+    /// Single enqueue attempt. Only an acknowledged NOSCRIPT permits exact
+    /// EVAL fallback; any possibly sent failure returns without replaying it.
+    /// SaveStep's separate Go-compatible retry heuristic is never used here.
+    pub fn enqueue(&mut self, ctx: &CallContext, request: &EnqueueRequest) -> EnqueueOutcome {
+        let mut out = EnqueueOutcome {
+            class: EnqueueClass::Failed,
+            stored_id: request.stored_id.clone(),
+            existing_run_id: None,
+            result: None,
+            write_status: WriteStatus::NotSent,
+            last_failure: None,
+        };
+        let command = |name: &str, script: &[u8]| {
+            let mut c = redis::cmd(name);
+            c.arg(script).arg(request.keys.len()).arg(&request.keys);
+            for arg in &request.args {
+                c.arg(arg);
+            }
+            c
+        };
+        let result = match self.command::<i64>(ctx, &command("EVALSHA", ENQUEUE_SHA1.as_bytes())) {
+            Err(f) if f.class == "NOSCRIPT" => self.command(ctx, &command("EVAL", ENQUEUE_LUA)),
+            result => result,
+        };
+        match result {
+            Err(f) => {
+                out.write_status = f.status;
+                out.last_failure = Some(f.class);
+                if f.class == "stopped" {
+                    out.class = EnqueueClass::Stopped;
+                }
+            }
+            Ok(code) => {
+                out.result = Some(code);
+                match code {
+                    0 => {
+                        out.class = EnqueueClass::Enqueued;
+                        out.write_status = WriteStatus::Confirmed;
+                    }
+                    1 => {
+                        out.write_status = WriteStatus::NotApplied;
+                        // Go loads the current item after duplicate, including a
+                        // different run sharing the same logical idempotency key.
+                        let mut load = redis::cmd("HGET");
+                        load.arg(&request.keys[0]).arg(&request.stored_id);
+                        match self.command::<Option<Vec<u8>>>(ctx, &load) {
+                            Ok(None) => out.class = EnqueueClass::Duplicate,
+                            Ok(Some(raw)) => match crate::enqueue::existing_run_id(&raw) {
+                                Some(run) => {
+                                    out.existing_run_id = Some(run);
+                                    out.class = EnqueueClass::Duplicate;
+                                }
+                                _ => out.last_failure = Some("duplicate-item-decode"),
+                            },
+                            Err(f) => out.last_failure = Some(f.class),
+                        }
+                    }
+                    2 => {
+                        out.class = EnqueueClass::ExcludedSingletonConflict;
+                        out.write_status = WriteStatus::NotApplied;
+                    }
+                    _ => {
+                        out.write_status = WriteStatus::MayHaveCommitted;
+                        out.last_failure = Some("unexpected-script-result");
+                    }
+                }
+            }
+        }
+        out
     }
 
     fn attempt(&mut self, ctx: &CallContext, request: &SaveRequest) -> Result<Vec<i64>, Failure> {

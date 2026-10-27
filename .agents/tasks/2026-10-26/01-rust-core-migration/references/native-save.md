@@ -2,6 +2,10 @@
 
 ## Scope and provenance
 
+Follow-up in [native enqueue](native-enqueue.md) repairs the helper transport cap
+and adds bounded discovery. The evidence and original scope below describe the
+accepted SaveStep delivery; full-response compaction remains a production gate.
+
 Parent accepted this bounded prototype after two independent reviews; it remains
 internal and has no production caller.
 Dedicated worktree

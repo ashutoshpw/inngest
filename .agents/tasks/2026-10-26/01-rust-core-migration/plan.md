@@ -28,6 +28,17 @@ Migrate the Inngest execution core from Go to Rust in behavior-preserving stages
 
 See [native SaveStep](references/native-save.md) for scope, test gates and evidence. Broad Phase 1 remains partial, Phase 2 open, bridge unset.
 
+## Native enqueue increment (2026-10-27)
+
+- [x] Confirm clean T3 binding and fast-forward to accepted PR17 base.
+- [x] Bounded native ordinary single-StepRun discovery enqueue and helper input cap repair.
+- [x] Validate native sockets, unchanged fixtures and fresh Go-owner replay; leave uncommitted for independent Luna + Sol review.
+- [x] Resume capacity-failed repair in place; validate four accepted native parity findings with additive real-owner cases.
+- [x] Independent Sol review 03 and Luna review 02 found no blockers; parent accepted the bounded implementation. Sol passed 276 Go normal/race records plus five Rust tests with zero failures/skips and verified source/baseline hashes. Luna passed five Rust tests, fmt/clippy, and targeted Valkey cases in both queue modes; no replay/race rerun in that lane. Author's 926 Go pass records and four-target Rust compile checks are separate evidence.
+- [ ] Commit and deliver as a stacked PR on `t3/native-step-save-adapter` (PR #17); record its delivery metadata.
+
+See [native enqueue](references/native-enqueue.md). Acceptance covers one ordinary single non-AI StepRun native SaveStep followed by native discovery enqueue and fresh Go readback/scanner replay. It does not establish production wiring, atomic save-plus-enqueue, exactly-once behavior, crash recovery, or active-lease recovery. Phase 1 partial, Phase 2 open, bridge unset; internal only, licensing unresolved.
+
 ## Delivery
 
 Use dedicated worktrees and small stacked PRs. Verify and record the first layer's base before implementation; each later layer targets its preceding branch. Follow the repository's conventional-title and PR-text rules in [validation and rollout](references/validation-rollout.md).
@@ -76,6 +87,8 @@ Use dedicated worktrees and small stacked PRs. Verify and record the first layer
 - [ ] Supported-target builds, compatible persisted state, single ownership, staged rollout, and rollback are validated before Go retirement.
 
 ## References
+
+- [Native enqueue](references/native-enqueue.md) — bounded discovery implementation, provenance, validation and open gates.
 
 - [Native SaveStep](references/native-save.md) — internal prototype scope, parity, runtime faults, commands, review handoff and open gates.
 - [Native dependency inventory](references/native-save-dependencies.json) — exact additive lock entries and upstream license/MSRV metadata; no distribution grant.
