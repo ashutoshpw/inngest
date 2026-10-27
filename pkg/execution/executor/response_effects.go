@@ -2,8 +2,6 @@ package executor
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"runtime/debug"
 	"time"
 
@@ -13,12 +11,12 @@ import (
 	"github.com/inngest/inngest/pkg/execution/queue"
 	"github.com/inngest/inngest/pkg/execution/state"
 	sv2 "github.com/inngest/inngest/pkg/execution/state/v2"
-	"github.com/inngest/inngest/pkg/inngest"
 	"github.com/inngest/inngest/pkg/logger"
-	"github.com/inngest/inngest/pkg/tracing"
-	"github.com/inngest/inngest/pkg/tracing/meta"
+	"github.com/inngest/inngest/pkg/telemetry/metrics"
 	"github.com/inngest/inngest/pkg/tracing/metadata"
 	"github.com/inngest/inngest/pkg/tracing/metadata/extractors"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -156,11 +154,11 @@ func (g goResponseEffects) logExistingStepOutput(ctx context.Context, step respo
 }
 
 func (g goResponseEffects) stepFinished(ctx context.Context, step responseStepBinding) {
-	g.executor.RunStepRunFinishedLifecycle(ctx, *step.runCtx.Metadata(), step.runCtx.LifecycleItem(), step.edge.Edge, step.gen, g.executor.now())
+	g.lifecycleAt(ctx, step, enums.StepStatusCompleted, 0, g.now())
 }
 
 func (g goResponseEffects) stepFailed(ctx context.Context, step responseStepBinding) {
-	g.executor.RunStepRunFailedLifecycle(ctx, *step.runCtx.Metadata(), step.runCtx.LifecycleItem(), step.edge.Edge, step.gen, enums.StepStatusFailed, step.runCtx.AttemptCount(), g.executor.now())
+	g.lifecycleAt(ctx, step, enums.StepStatusFailed, step.runCtx.AttemptCount(), g.now())
 }
 
 func (g goResponseEffects) releaseCapacity(ctx context.Context, step responseStepBinding) {
@@ -180,81 +178,25 @@ func (g goResponseEffects) enqueueStep(ctx context.Context, step responseStepBin
 	)
 }
 
-func (g goResponseEffects) enqueueFailedStep(ctx context.Context, step responseStepBinding, hasPendingSteps bool) error {
-	e, runCtx, gen, edge := g.executor, step.runCtx, step.gen, step.edge
-	// Because this is a final step error that was handled gracefully, enqueue
-	// another attempt to the function with a new edge type.
-	nextEdge := inngest.Edge{
-		Outgoing: gen.ID,             // Going from the current step
-		Incoming: edge.Edge.Incoming, // And re-calling the incoming function in a loop
+// Activation occurs after history binding and edge validation, including None.
+// StepError marks the incoming span before a local permanent-failure conversion.
+func (g goResponseEffects) activateBranch(ctx context.Context, gen state.GeneratorOpcode) {
+	metrics.IncrExecutorHandleGeneratorCount(ctx, gen.Op.String(), metrics.CounterOpt{PkgName: pkgName})
+	if gen.Op == enums.OpcodeStepError {
+		trace.SpanFromContext(ctx).SetStatus(codes.Error, gen.Error.Name)
 	}
-	groupID := uuid.New().String()
-	ctx = state.WithGroupID(ctx, groupID)
+}
+func (g goResponseEffects) prepareRetrySpan(ctx context.Context, step responseStepBinding) {
+	gen := step.gen
+	g.executor.emitStepSpan(ctx, step.runCtx, &gen, nil, nil)
+}
 
-	// This is the discovery step to find what happens after we error
-	jobID := fmt.Sprintf("%s-%s-failure", runCtx.Metadata().IdempotencyKey(), gen.ID)
-	now := e.now()
-	nextItem := queue.Item{
-		JobID:                 &jobID,
-		WorkspaceID:           runCtx.Metadata().ID.Tenant.EnvID,
-		GroupID:               groupID,
-		Kind:                  queue.KindEdgeError,
-		Identifier:            sv2.V1FromMetadata(*runCtx.Metadata()),
-		PriorityFactor:        runCtx.PriorityFactor(),
-		CustomConcurrencyKeys: runCtx.ConcurrencyKeys(),
-		Semaphores:            stepSemaphores(*runCtx.Metadata()),
-		Attempt:               0,
-		MaxAttempts:           runCtx.MaxAttempts(),
-		Payload:               queue.PayloadEdge{Edge: nextEdge},
-		Metadata:              make(map[string]any),
-		ParallelMode:          gen.ParallelMode(),
+// The caller owns the clock read. This effect must never sample it again.
+func (g goResponseEffects) lifecycleAt(ctx context.Context, step responseStepBinding, status enums.StepStatus, attempt int, at time.Time) {
+	e := g.executor
+	if status == enums.StepStatusCompleted {
+		e.RunStepRunFinishedLifecycle(ctx, *step.runCtx.Metadata(), step.runCtx.LifecycleItem(), step.edge.Edge, step.gen, at)
+	} else {
+		e.RunStepRunFailedLifecycle(ctx, *step.runCtx.Metadata(), step.runCtx.LifecycleItem(), step.edge.Edge, step.gen, status, attempt, at)
 	}
-
-	if shouldEnqueueDiscovery(hasPendingSteps, runCtx.ParallelMode()) {
-		if err := e.maybeResetForceStepPlan(ctx, runCtx.Metadata()); err != nil {
-			return fmt.Errorf("error resetting force step plan: %w", err)
-		}
-		lifecycleItem := runCtx.LifecycleItem()
-		metadata := runCtx.Metadata()
-		span, err := e.tracerProvider.CreateDroppableSpan(
-			ctx,
-			meta.SpanNameStepDiscovery,
-			&tracing.CreateSpanOptions{
-				Carriers:    []map[string]any{nextItem.Metadata},
-				FollowsFrom: tracing.SpanRefFromQueueItem(&lifecycleItem),
-				Debug:       &tracing.SpanDebugData{Location: "executor.handleStepFailed"},
-				Metadata:    runCtx.Metadata(),
-				QueueItem:   &nextItem,
-				Parent:      tracing.RunSpanRefFromMetadata(metadata),
-			},
-		)
-		if err != nil {
-			// return fmt.Errorf("error creating span for next step after
-			// StepError: %w", err)
-			e.log.Debug("error creating span for next step after StepFailed", "error", err)
-		}
-
-		err = e.queue.Enqueue(ctx, nextItem, now, queue.EnqueueOpts{})
-		if errors.Is(err, queue.ErrQueueItemExists) {
-			span.Drop()
-			return nil
-		}
-		if err != nil {
-			span.Drop()
-			logger.StdlibLogger(ctx).Error("error scheduling step failure queue item", "error", err)
-			return retryableEnqueueError(err)
-		}
-
-		_ = span.Send()
-	}
-
-	for _, l := range e.lifecycles {
-		go l.OnStepScheduled(ctx, *runCtx.Metadata(), nextItem, nil)
-	}
-	syncNow := e.now()
-	execution.SafelyInvokeSyncListeners(ctx, e.log, e.syncLifecycles, "OnStepScheduled", func(sl execution.SyncLifecycleListener) {
-		sl.OnStepScheduled(ctx, *runCtx.Metadata(), nextItem, nil, syncNow)
-	})
-
-	return nil
 }

@@ -497,6 +497,10 @@ impl PortRecorder {
                 );
                 Observation::Ack(fault(&c.pending_error))
             }
+            Effect::ActivateBranch { history_group } => {
+                self.history(branch, history_group, c.ops.len() * c.repeat.max(1) > 1);
+                Observation::Done
+            }
             Effect::PrepareSave {
                 opcode,
                 history_group,
@@ -890,6 +894,7 @@ fn stale_duplicate_and_mismatched_resume_preserve_outstanding_state() {
         s.resume(r.key, Observation::Clock(0)),
         Err(Reject::UnknownRequest)
     );
+    let p = activate(&mut s, p);
     let prep = sole(&p);
     assert!(
         matches!(&prep.effect,Effect::PrepareSave{history_group:HistoryGroup::Existing(group),..} if group=="original-group")
@@ -942,6 +947,7 @@ fn sibling_can_enqueue_while_other_save_is_outstanding_and_join_waits() {
                 },
             ),
         );
+        let p = activate(&mut s, p);
         let p = respond(
             &mut s,
             &sole(&p),
@@ -1012,6 +1018,7 @@ fn competing_errors_keep_observed_first_without_ranking_or_cancellation() {
                         },
                 ),
             );
+            let p = activate(&mut s, p);
             let p = respond(&mut s, &sole(&p), Observation::Prepared(Ok(vec![])));
             saves.push(sole(&p));
         }
@@ -1038,4 +1045,47 @@ fn competing_errors_keep_observed_first_without_ranking_or_cancellation() {
             errors[first].clone().unwrap()
         );
     }
+}
+
+fn activate(s: &mut Session, p: Progress) -> Progress {
+    let r = sole(&p);
+    assert!(matches!(r.effect, Effect::ActivateBranch { .. }));
+    respond(s, &r, Observation::Done)
+}
+
+// Distinct owner contract: even None activates after history binding. A caught
+// branch panic consumes its key, returns nil and waits for its live siblings.
+#[test]
+fn activation_and_recovered_branch_panic_join_siblings() {
+    let (mut input, _) = sample("eligible-six-tags");
+    input.ops = vec![input.ops[0].clone(), input.ops[3].clone()];
+    input.config.force_step_plan = true;
+    let (mut session, p) = Session::start(input).unwrap();
+    let p = respond(&mut session, &sole(&p), Observation::Clock(0));
+    assert_eq!(p.ready.len(), 2);
+    let mut active = Vec::new();
+    for r in p.ready {
+        assert!(matches!(r.effect, Effect::Uuid(UuidSite::History)));
+        assert_eq!(
+            session.resume(r.key, Observation::BranchPanicked),
+            Err(Reject::MismatchedResult)
+        );
+        let p = respond(
+            &mut session,
+            &r,
+            Observation::Uuid(100 + u128::from(r.key.sequence)),
+        );
+        let r = sole(&p);
+        assert!(matches!(r.effect, Effect::ActivateBranch { .. }));
+        active.push(r);
+    }
+    let p = respond(&mut session, &active[1], Observation::BranchPanicked);
+    assert!(p.completion.is_none());
+    assert_eq!(
+        session.resume(active[1].key, Observation::Done),
+        Err(Reject::UnknownRequest)
+    );
+    let p = respond(&mut session, &active[0], Observation::Done);
+    assert_eq!(p.completion, Some(None));
+    assert_eq!(session.outstanding().count(), 0);
 }

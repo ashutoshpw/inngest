@@ -5,6 +5,8 @@
 //! prepared metadata accounting, spans and original errors. This API is a model,
 //! not a stable ABI. Never fall back after executing any request.
 
+use serde::{Deserialize, Serialize};
+
 use opcode_kernel::{MAX_OPCODES, OpcodeTag};
 use xxhash_rust::xxh64::Xxh64;
 
@@ -12,7 +14,7 @@ pub const STEP_LIMIT: usize = 1_000;
 pub type Time = i128; // Unix nanoseconds; no rounding at the model boundary.
 pub type ErrorHandle = u64;
 
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Config {
     pub request_version: i32,
     pub force_step_plan: bool,
@@ -20,7 +22,7 @@ pub struct Config {
     pub has_ai: bool,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct UserError {
     pub name: String,
     pub message: String,
@@ -29,7 +31,7 @@ pub struct UserError {
 
 /// Raw bytes/options remain owned data. Decoding and output/trace preparation
 /// belong to Go; parallel_mode/has_ai are observations, never continuation decisions.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Opcode {
     pub tag: u8,
     pub id: String,
@@ -42,7 +44,7 @@ pub struct Opcode {
     pub has_ai: bool,
 }
 
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Edge {
     pub incoming: String,
     pub outgoing: String,
@@ -52,7 +54,7 @@ pub struct Edge {
 
 /// Owned observations copied into queue recipes. Go materializes Identifier,
 /// concurrency and semaphore values; Rust makes no decisions inside those bytes.
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub struct QueueBindings {
     pub workspace_id: String,
     pub identifier: Vec<u8>,
@@ -61,7 +63,7 @@ pub struct QueueBindings {
     pub step_semaphores: Vec<u8>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Input {
     pub generation: u64,
     pub ops: Vec<Option<Opcode>>,
@@ -86,7 +88,7 @@ pub struct Input {
 
 /// Classifications are observations of Go errors.Is/As. Identity is an opaque
 /// adapter-owned handle; this crate never reconstructs an error message.
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Fault {
     pub handle: ErrorHandle,
     pub duplicate: bool,
@@ -95,7 +97,7 @@ pub struct Fault {
     pub always_retry: bool,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum ErrorContext {
     Original,
     Metadata,
@@ -103,33 +105,33 @@ pub enum ErrorContext {
     Reset,
     Discovery,
 }
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum RetryPolicy {
     Original,
     Never,
     At(Time),
     Always,
 }
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Disposition {
     pub fault: Fault,
     pub context: ErrorContext,
     pub policy: RetryPolicy,
 }
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub enum ParallelMode {
     #[default]
     None,
     Wait,
     Race,
 }
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum Kind {
     Edge,
     EdgeError,
 }
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Recipe {
     pub job_id: String,
     pub group: u128,
@@ -144,20 +146,20 @@ pub struct Recipe {
     pub passthrough_job_id: bool,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum ClockSite {
     Handling,
     Lifecycle,
     Recipe,
     Callback,
 }
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum UuidSite {
     History,
     Discovery,
     Planned,
 }
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum Status {
     Finished,
     Failed,
@@ -165,7 +167,7 @@ pub enum Status {
 }
 /// Existing queue group IDs can be empty or arbitrary strings. Only parallel
 /// branch history groups request fresh UUID bits from the external binding.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum HistoryGroup {
     Existing(String),
     Generated(u128),
@@ -175,7 +177,7 @@ impl Default for HistoryGroup {
         Self::Existing(String::new())
     }
 }
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum ScheduledItem {
     Recipe(Box<Recipe>),
     Original {
@@ -186,12 +188,15 @@ pub enum ScheduledItem {
 
 /// Each request performs a concrete effect. No effect asks Go to decide whether
 /// to retry, accept a save, reset metadata, enqueue or notify listeners.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum Effect {
     UpdateMetadata(Config),
     Clock(ClockSite),
     Uuid(UuidSite),
     SavePending(Vec<String>),
+    ActivateBranch {
+        history_group: HistoryGroup,
+    },
     PrepareSave {
         opcode: Opcode,
         history_group: HistoryGroup,
@@ -232,26 +237,27 @@ pub enum Effect {
     },
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum Owner {
     Response,
     Branch(u32),
 }
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Key {
     pub generation: u64,
     pub owner: Owner,
     pub sequence: u64,
 }
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Request {
     pub key: Key,
     pub effect: Effect,
 }
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum Observation {
     Ack(Option<Fault>),
     Done,
+    BranchPanicked,
     Clock(Time),
     Uuid(u128),
     Prepared(Result<Vec<u8>, Fault>),
@@ -260,14 +266,14 @@ pub enum Observation {
         error: Option<Fault>,
     },
 }
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Progress {
     /// Newly ready requests only; each key remains outstanding until resumed.
     pub ready: Vec<Request>,
     /// None while joining, Some(None) on success, Some(Some(..)) on failure.
     pub completion: Option<Option<Disposition>>,
 }
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum Reject {
     InvalidInput,
     UnsupportedBatch,
@@ -281,6 +287,7 @@ enum Await {
     Handling,
     Pending,
     History,
+    Activated,
     Prepared,
     Saved,
     ExistingLog,
@@ -425,6 +432,16 @@ impl Session {
         if pending.request.key != key {
             return Err(Reject::UnknownRequest);
         }
+        if result == Observation::BranchPanicked {
+            if slot == self.branches.len()
+                || matches!(pending.request.effect, Effect::Uuid(UuidSite::History))
+            {
+                return Err(Reject::MismatchedResult);
+            }
+            self.pending[slot] = None;
+            self.finish(slot, None);
+            return Ok(self.progress(Vec::new()));
+        }
         if !compatible(&pending.request.effect, &result) {
             return Err(Reject::MismatchedResult);
         }
@@ -550,6 +567,16 @@ impl Session {
         }
     }
     fn begin_branch(&mut self, i: usize, ready: &mut Vec<Request>) {
+        self.issue(
+            i,
+            Effect::ActivateBranch {
+                history_group: self.branches[i].history.clone(),
+            },
+            Await::Activated,
+            ready,
+        );
+    }
+    fn activated_branch(&mut self, i: usize, ready: &mut Vec<Request>) {
         let op = self.op(i);
         if op.tag == OpcodeTag::None as u8 {
             self.finish(i, None);
@@ -738,6 +765,7 @@ impl Session {
                 self.branches[i].history = HistoryGroup::Generated(uuid);
                 self.begin_branch(i, ready);
             }
+            (Await::Activated, Observation::Done) => self.activated_branch(i, ready),
             (Await::Prepared, Observation::Prepared(result)) => match result {
                 Ok(output) => self.issue(
                     i,
@@ -943,7 +971,8 @@ fn compatible(effect: &Effect, observation: &Observation) -> bool {
             error.as_ref().is_none_or(|e| e.handle != 0)
         }
         (
-            Effect::PrepareRetrySpan { .. }
+            Effect::ActivateBranch { .. }
+            | Effect::PrepareRetrySpan { .. }
             | Effect::LogExistingOutput(_)
             | Effect::Lifecycle { .. }
             | Effect::ReleaseCapacity
