@@ -1,0 +1,69 @@
+{
+  "idempotency": "1833r1vslvd4z-3r6npmcyn1nmh",
+  "original_job": "16e6bgk5j2d2f",
+  "discovery_job": "21swrikw69rwn",
+  "discovery_logical_job": "11111111-2222-3333-4444-555555555555:1833r1vslvd4z-3r6npmcyn1nmh-checkpoint-output",
+  "output": "{\"data\":{\"ok\":true,\"receipt\":\"effect-1\"}}",
+  "state_keys": {
+    "actions": "{estate:01K8F08000AAAAAAAAAAAAAAAA}:actions:11111111-2222-3333-4444-555555555555:01K8F08000AAAAAAAAAAAAAAAA",
+    "metadata": "{estate:01K8F08000AAAAAAAAAAAAAAAA}:metadata:01K8F08000AAAAAAAAAAAAAAAA",
+    "stack": "{estate:01K8F08000AAAAAAAAAAAAAAAA}:stack:01K8F08000AAAAAAAAAAAAAAAA",
+    "pending": "{estate:01K8F08000AAAAAAAAAAAAAAAA}:pending:11111111-2222-3333-4444-555555555555:01K8F08000AAAAAAAAAAAAAAAA"
+  },
+  "queue_keys": {
+    "items": "{queue}:queue:item",
+    "run": "{queue}:idx:run:01K8F08000AAAAAAAAAAAAAAAA",
+    "start": "{queue}:queue:status:11111111-2222-3333-4444-555555555555:start",
+    "edge": "{queue}:queue:status:11111111-2222-3333-4444-555555555555:in-progress",
+    "ready": "{queue}:queue:sorted:11111111-2222-3333-4444-555555555555",
+    "backlog": "{queue}:backlog:sorted:fn:11111111-2222-3333-4444-555555555555",
+    "seen_original": "{queue}:queue:seen:16e6bgk5j2d2f",
+    "seen_discovery": "{queue}:queue:seen:21swrikw69rwn",
+    "backlog_start": "{queue}:backlog:sorted:fn:11111111-2222-3333-4444-555555555555:start"
+  },
+  "metadata": {
+    "rv": "2",
+    "step_count": "1",
+    "hasAI": "false",
+    "die": "0",
+    "event_size": "98",
+    "state_size": "139",
+    "schat": "1793016000000",
+    "version": "1",
+    "status": "5",
+    "id": "{\"wv\":1,\"wID\":\"11111111-2222-3333-4444-555555555555\",\"evtID\":\"01K8F08000BBBBBBBBBBBBBBBB\",\"runID\":\"01K8F08000AAAAAAAAAAAAAAAA\",\"eventIDs\":[\"01K8F08000BBBBBBBBBBBBBBBB\"],\"appID\":\"cccccccc-cccc-cccc-cccc-cccccccccccc\",\"key\":\"1833r1vslvd4z-3r6npmcyn1nmh\",\"aID\":\"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa\",\"pf\":0,\"wsID\":\"bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb\"}"
+  },
+  "scenarios": [
+    {
+      "name": "normal-checkpoint-discovery",
+      "fault": "",
+      "remaining": [
+        "21swrikw69rwn"
+      ],
+      "replay_job": "21swrikw69rwn",
+      "replay_stack_current": 1
+    },
+    {
+      "name": "save-committed-discovery-before-commit",
+      "fault": "before",
+      "remaining": [
+        "16e6bgk5j2d2f"
+      ],
+      "replay_job": "16e6bgk5j2d2f",
+      "replay_stack_current": 0
+    },
+    {
+      "name": "discovery-committed-ack-suppressed",
+      "fault": "after",
+      "remaining": [
+        "16e6bgk5j2d2f",
+        "21swrikw69rwn"
+      ],
+      "replay_job": "21swrikw69rwn",
+      "replay_stack_current": 1
+    }
+  ],
+  "initial_state_size": 98,
+  "output_bytes": 41,
+  "immediate_score_ms": 1761440169984
+}
