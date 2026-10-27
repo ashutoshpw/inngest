@@ -1,0 +1,48 @@
+{
+  "formatVersion": 1,
+  "provenance": "Literal StepRun Output and prepareStep contracts at 903288e1b; envelope preserves RawMessage numbers/object ordering, compacting whitespace and escaping HTML and U+2028/U+2029. Byte counts authored before test execution. Empty non-AI metadata delta is zero.",
+  "cases": [
+    {
+      "name": "missing",
+      "data": "",
+      "prepared": "{\"data\":null}",
+      "bytes": 13
+    },
+    {
+      "name": "null",
+      "data": "null",
+      "prepared": "{\"data\":null}",
+      "bytes": 13
+    },
+    {
+      "name": "large-integer",
+      "data": "9007199254740993",
+      "prepared": "{\"data\":9007199254740993}",
+      "bytes": 25
+    },
+    {
+      "name": "exponent",
+      "data": "1e+06",
+      "prepared": "{\"data\":1e+06}",
+      "bytes": 14
+    },
+    {
+      "name": "negative-zero",
+      "data": "-0",
+      "prepared": "{\"data\":-0}",
+      "bytes": 11
+    },
+    {
+      "name": "ordered-object",
+      "data": " { \"b\": 2, \"a\": 1 } ",
+      "prepared": "{\"data\":{\"b\":2,\"a\":1}}",
+      "bytes": 22
+    },
+    {
+      "name": "string",
+      "data": "\"quote\\\" backslash\\\\ newline\\n <>& Unicode\\u2028\\u2029\"",
+      "prepared": "{\"data\":\"quote\\\" backslash\\\\ newline\\n \\u003c\\u003e\\u0026 Unicode\\u2028\\u2029\"}",
+      "bytes": 79
+    }
+  ]
+}

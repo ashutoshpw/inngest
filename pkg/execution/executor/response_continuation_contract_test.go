@@ -425,13 +425,17 @@ func assertContinuationError(t *testing.T, tc continuationCase, err error, fault
 // The real preparation owner creates this standard wrapper. Require it to be
 // returned directly, with the original overflow sentinel and no response retry
 // wrapper or reconstruction, even when NoRetry and RetryAt were supplied.
-func requireContinuationPreparationOverflow(t *testing.T, err error) {
+func requireContinuationPreparationOverflow(t *testing.T, err error, limits ...int) {
 	t.Helper()
 	require.IsType(t, &state.WrappedStandardError{}, err)
 	require.Same(t, state.ErrStateOverflowed, errors.Unwrap(err))
 	standard := err.(*state.WrappedStandardError)
 	require.Equal(t, "InngestErrStateOverflowed", standard.Name)
-	require.Equal(t, "The function run exceeded the state size limit of 12 bytes.", standard.Message)
+	limit := 12
+	if len(limits) > 0 {
+		limit = limits[0]
+	}
+	require.Equal(t, fmt.Sprintf("The function run exceeded the state size limit of %d bytes.", limit), standard.Message)
 }
 
 type continuationClock struct {

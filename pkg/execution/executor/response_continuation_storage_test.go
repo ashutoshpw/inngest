@@ -13,43 +13,17 @@ import (
 
 	"github.com/google/uuid"
 	native "github.com/inngest/inngest/internal/responsecontinuationspike"
-	"github.com/inngest/inngest/pkg/consts"
 	"github.com/inngest/inngest/pkg/enums"
 	"github.com/inngest/inngest/pkg/execution/queue"
 	"github.com/inngest/inngest/pkg/execution/state"
-	"github.com/inngest/inngest/pkg/execution/state/redis_state"
 	sv2 "github.com/inngest/inngest/pkg/execution/state/v2"
 	"github.com/inngest/inngest/pkg/logger"
 	"github.com/inngest/inngest/pkg/tracing"
 	"github.com/inngest/inngest/pkg/tracing/meta"
 	queuehelper "github.com/inngest/inngest/tests/execution/queue/helper"
-	"github.com/jonboulle/clockwork"
 	"github.com/oklog/ulid/v2"
-	"github.com/redis/rueidis"
 	"github.com/stretchr/testify/require"
 )
-
-// These constructors are test-private. Each witness uses real production state
-// and queue adapters, and an independent client/adapter for persisted reads.
-func nativeStatePort(t *testing.T, ctx context.Context, client rueidis.Client, stateKey, queueKey string) sv2.RunService {
-	t.Helper()
-	unsharded := redis_state.NewUnshardedClient(client, stateKey, queueKey)
-	sharded := redis_state.NewShardedClient(redis_state.ShardedClientOpts{UnshardedClient: unsharded, FunctionRunStateClient: client, BatchClient: client, StateDefaultKey: stateKey, QueueDefaultKey: queueKey, FnRunIsSharded: redis_state.AlwaysShardOnRun})
-	manager, err := redis_state.New(ctx, redis_state.WithShardedClient(sharded))
-	require.NoError(t, err)
-	return redis_state.MustRunServiceV2(manager)
-}
-func nativeQueuePort(t *testing.T, ctx context.Context, client rueidis.Client, queueKey string, clock clockwork.Clock, keyQueues bool) (queue.Queue, string) {
-	t.Helper()
-	opts := []queue.QueueOpt{queue.WithClock(clock), queue.WithRunMode(queue.QueueRunMode{Partition: true, ShadowPartition: keyQueues}), queue.WithAllowKeyQueues(func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID) bool { return keyQueues })}
-	qc := redis_state.NewQueueClient(client, queueKey)
-	shard := redis_state.NewQueueShard(consts.DefaultQueueShardName, qc, opts...)
-	registry, err := queue.NewSingleShardRegistry(shard)
-	require.NoError(t, err)
-	q, err := queue.New(ctx, "response-continuation-witness", registry, opts...)
-	require.NoError(t, err)
-	return q, qc.KeyGenerator().QueueItem()
-}
 
 type nativeCommittedQueue struct {
 	queue.Queue
