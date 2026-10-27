@@ -1,7 +1,8 @@
 # Bounded native ordinary StepRun discovery enqueue
 
 State: accepted after independent Sol review 03, Luna review 02, and parent
-acceptance. Stacked PR delivery in progress. Internal only; licensing unresolved.
+acceptance. [PR #18](https://github.com/ashutoshpw/inngest/pull/18) is open,
+stacked on PR #17. Internal only; licensing unresolved.
 Phase 1 partial, Phase 2 open, bridge unset.
 
 Worktree `/home/ashutosh/.t3/worktrees/inngest/t3-45e16f5c`, T3-bound branch
@@ -462,3 +463,15 @@ licensing/distribution, lifecycle, fencing, platform execution, and performance
 gates remain open. Phase 1 remains partial, Phase 2 open, and the bridge unset;
 the prior FFI no-go remains in force. No benchmark or broad-suite rerun was part
 of this acceptance.
+
+## Delivery (2026-10-27)
+
+[PR #18](https://github.com/ashutoshpw/inngest/pull/18),
+`internal(execution): add bounded native StepRun discovery enqueue`, is open
+from `t3/native-step-enqueue` into `t3/native-step-save-adapter` (PR #17). Its
+opening implementation commit is `927fc1869c99332e79ff3a62e8822cc7fd957ecc`;
+the PR base resolved to `928af60e182e7dd7b679c5ac819b1fa74107cc82`. The opening
+snapshot was non-draft and mergeable, with no review decision or check runs
+reported. T3 links PR #17 and #18 to this delivery thread and parent thread
+`c37dccc0-74a6-4b56-bc19-0ffcf321cc19`. This delivery record advances the PR
+head after the implementation commit. Release note: None. Migration note: None.
