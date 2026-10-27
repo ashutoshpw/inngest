@@ -9,15 +9,18 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"math/rand"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
+	"syscall"
 	"testing"
 	"time"
 
@@ -26,7 +29,9 @@ import (
 	sv2 "github.com/inngest/inngest/pkg/execution/state/v2"
 )
 
-var measureMode = flag.String("response-measure-mode", "", "plan, smoke, campaign or diagnostic; execution requires separate authorization")
+var measureMode = flag.String("response-measure-mode", "", "plan, smoke, campaign, screen or diagnostic; execution requires separate authorization")
+var measureDeclareOnly = flag.Bool("response-measure-declare-only", false, "screen declaration only; execute no children")
+var measurePackageRemaining = flag.Duration("response-measure-package-remaining", 15*time.Minute, "screen package budget remaining after outer setup")
 var measureOut = flag.String("response-measure-out", "", "new artifact directory (required)")
 var measureLaneSelection = flag.String("response-measure-lanes", "go,native", "exact comma-separated lanes")
 var measureProfileSelection = flag.String("response-measure-profiles", "controlled,real-valkey-off,real-valkey-on", "exact profiles; missing Valkey is an error")
@@ -49,6 +54,8 @@ func measureCaptureBudget(mode string) (measureBudget, error) {
 	case "", "plan", "smoke", "campaign":
 	case "diagnostic":
 		b = measureBudget{210 * time.Second, 240 * time.Second, 260 * time.Second, 270 * time.Second, 20 * time.Second, 240000}
+	case "screen":
+		b = measureBudget{60 * time.Second, 90 * time.Second, 110 * time.Second, 120 * time.Second, 20 * time.Second, 120000}
 	default:
 		return b, fmt.Errorf("invalid capture budget mode %q", mode)
 	}
@@ -201,13 +208,16 @@ func measureSelect(value string, allowed []string) ([]string, error) {
 	return result, nil
 }
 func measureRows(mode, lanes, profiles, workloads, concurrency string) ([]measureRow, error) {
+	if mode == "screen" && (lanes != "go,native" || profiles != "controlled" || workloads != "run64,mixed8,run64k" || concurrency != "1") {
+		return nil, errors.New("screen requires exact go,native/controlled/run64,mixed8,run64k/C1 selectors")
+	}
 	if mode == "diagnostic" {
 		if lanes != "native" || profiles != "controlled" || workloads != "run64k" || concurrency != "1" {
 			return nil, errors.New("diagnostic requires exact native/controlled/run64k/C1 selectors")
 		}
 		return []measureRow{{Seed: 26011, Lane: "native", Profile: "controlled", Workload: "run64k", Concurrency: 1, Count: 5000, Warmups: 32}}, nil
 	}
-	if mode != "smoke" && mode != "campaign" && mode != "plan" {
+	if mode != "smoke" && mode != "campaign" && mode != "plan" && mode != "screen" {
 		return nil, fmt.Errorf("invalid mode %q", mode)
 	}
 	ls, err := measureSelect(lanes, []string{"go", "native"})
@@ -226,7 +236,7 @@ func measureRows(mode, lanes, profiles, workloads, concurrency string) ([]measur
 	if err != nil {
 		return nil, err
 	}
-	if mode != "smoke" && (len(ls) != 2 || len(ps) != 3 || len(ws) != 5 || len(cs) != 2) {
+	if mode != "smoke" && mode != "screen" && (len(ls) != 2 || len(ps) != 3 || len(ws) != 5 || len(cs) != 2) {
 		return nil, errors.New("plan/campaign requires the complete declared matrix")
 	}
 	seeds := []int{26011, 26012, 26013}
@@ -242,7 +252,7 @@ func measureRows(mode, lanes, profiles, workloads, concurrency string) ([]measur
 				for _, c := range cs {
 					n, _ := strconv.Atoi(c)
 					count := 5000
-					if p != "controlled" {
+					if p != "controlled" || mode == "screen" {
 						count = 500
 					}
 					warm := 32
@@ -265,6 +275,9 @@ func measureRows(mode, lanes, profiles, workloads, concurrency string) ([]measur
 				rows = append(rows, r)
 			}
 		}
+	}
+	if mode == "screen" {
+		return rows, nil // First request belongs to each row; no extra first children.
 	}
 	// Separate fresh-process first observations; never label them cold-cache.
 	rng := rand.New(rand.NewSource(26011))
@@ -400,7 +413,17 @@ func measureWrite(path string, v any) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(path, append(b, '\n'), 0600)
+	temporary := path + ".tmp"
+	file, err := os.OpenFile(temporary, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
+	if err != nil {
+		return err
+	}
+	_, writeErr := file.Write(append(b, '\n'))
+	err = errors.Join(writeErr, file.Sync(), file.Close())
+	if err != nil {
+		return err
+	}
+	return os.Rename(temporary, path)
 }
 
 // Read only published immutable completions. Watchdog expiry never fabricates
@@ -409,17 +432,22 @@ func measureFailureSamples(res *measureResult, completed []atomic.Pointer[measur
 	for j := range completed {
 		if sample := completed[j].Load(); sample != nil {
 			res.Samples[j] = *sample
-		} else if start := starts[j].Load(); start > 0 {
-			res.Samples[j].Start = start
-			res.Samples[j].Result = "in_flight_at_" + reason
-			res.Samples[j].Timeout = reason == "request_deadline_expired"
+		}
+		if !res.Samples[j].Complete {
+			if start := starts[j].Load(); start > 0 {
+				res.Samples[j].Start = start
+				res.Samples[j].Result = "in_flight_at_" + reason
+				res.Samples[j].Timeout = reason == "request_deadline_expired"
+			} else if res.Samples[j].SlotStart > 0 {
+				res.Samples[j].Result += "_at_" + reason
+			}
 		}
 	}
 }
 
 // Failure-only, outside measurement. Native unwinding is best effort: tool,
 // ptrace permission, symbols and unwind metadata may be unavailable.
-func measureFailureStacks(path string) {
+func measureFailureStacks(path string) error {
 	const bound = 2 << 20
 	buf := make([]byte, bound)
 	n := runtime.Stack(buf, true)
@@ -434,11 +462,13 @@ func measureFailureStacks(path string) {
 		cmd.WaitDelay = time.Second
 		err := cmd.Run()
 		meta["native_argv"], meta["native_error"], meta["native_truncated"] = cmd.Args, fmt.Sprint(err), output.truncated
-		meta["native_write_error"] = fmt.Sprint(os.WriteFile(path+"-native-stacks.txt", output.Bytes(), 0600))
+		nativeErr := os.WriteFile(path+"-native-stacks.txt", output.Bytes(), 0600)
+		meta["native_write_error"] = fmt.Sprint(nativeErr)
+		goErr = errors.Join(goErr, nativeErr)
 	} else {
 		meta["native_status"] = "unavailable: gdb not installed; no native backtrace established"
 	}
-	_ = measureWrite(path+"-stacks.json", meta)
+	return errors.Join(goErr, measureWrite(path+"-stacks.json", meta))
 }
 
 type measureBoundedOutput struct {
@@ -456,6 +486,65 @@ func (w *measureBoundedOutput) Write(p []byte) (int, error) {
 	_, _ = w.Buffer.Write(p)
 	w.remaining -= len(p)
 	return n, nil
+}
+
+// Test-scope barriers exercise the actual parent/row protocol without a screen.
+// No production ports, workload semantics or timing functions are substituted.
+type measureControlBarrier struct {
+	stage, path string
+	attempted   chan struct{}
+	once        sync.Once
+}
+
+func newMeasureControlBarrier(row measureRow, path string) *measureControlBarrier {
+	stage := os.Getenv("RESPONSE_MEASURE_CONTROL_BARRIER")
+	if stage == "" || row.Preflight || (os.Getenv("RESPONSE_MEASURE_COMBINED_CONTROL") != "1" && os.Getenv("RESPONSE_MEASURE_CONTROL_HELPER") != "row") {
+		return nil
+	}
+	return &measureControlBarrier{stage: stage, path: path, attempted: make(chan struct{})}
+}
+
+func (b *measureControlBarrier) point(ctx context.Context, point string) {
+	if b == nil {
+		return
+	}
+	if point == "attempted" {
+		b.once.Do(func() { close(b.attempted) })
+		return
+	}
+	if point == "watchdog" && b.stage == "setup" {
+		<-b.attempted
+		return
+	}
+	if point != b.stage {
+		return
+	}
+	if err := measureWrite(b.path+".ready", map[string]any{"stage": point, "pid": os.Getpid(), "parent_pid": os.Getppid()}); err != nil {
+		panic(err)
+	}
+	fmt.Println("control barrier:", point)
+	<-ctx.Done()
+	if point != "setup" {
+		select {}
+	}
+}
+
+// This is an explicit, tiny test configuration of the real measurement parent.
+// Python selects this test, which still runs the real preflight/command runner
+// and launches TestResponseContinuationMeasure in a separate row process.
+func TestResponseMeasureCombinedControl(t *testing.T) {
+	if os.Getenv("RESPONSE_MEASURE_COMBINED_CONTROL") != "1" {
+		t.Skip("combined control requires explicit helper configuration")
+	}
+	fmt.Println("control parent starting")
+	TestResponseContinuationMeasure(t)
+}
+
+func measureControlRows(rows []measureRow) []measureRow {
+	if os.Getenv("RESPONSE_MEASURE_COMBINED_CONTROL") == "1" {
+		return []measureRow{{Seed: 26011, Lane: "native", Profile: "controlled", Workload: "run64", Concurrency: 1, Count: 3, Warmups: 1}}
+	}
+	return rows
 }
 
 func runMeasureRow(row measureRow, path string) (retErr error) {
@@ -480,7 +569,10 @@ func runMeasureRow(row measureRow, path string) (retErr error) {
 			if res.StopReason == "" {
 				res.StopReason = "request_validation_or_capture_error"
 			}
-			measureFailureStacks(path)
+			// Save known observations before best-effort stacks consume grace.
+			retErr = errors.Join(retErr, measureWrite(path, res))
+			retErr = errors.Join(retErr, measureFailureStacks(path))
+			return
 		}
 		retErr = errors.Join(retErr, measureWrite(path, res))
 	}()
@@ -489,8 +581,137 @@ func runMeasureRow(row measureRow, path string) (retErr error) {
 	}
 	// Expiry is a capture stop, not proof of a native hang or interruptible C calls.
 	setupStart := time.Now()
-	ctx, cancel := context.WithTimeout(context.Background(), budget.RowContext)
+	barrier := newMeasureControlBarrier(row, path)
+	// SIGUSR1 requests a failure-only snapshot, never a graceful native join.
+	// Register before setup so a stop cannot arrive with the default disposition.
+	stopCtx, stopSignals := signal.NotifyContext(context.Background(), syscall.SIGUSR1)
+	defer stopSignals()
+	ctx, cancel := context.WithTimeout(stopCtx, budget.RowContext)
 	defer cancel()
+	total := 1 + row.Warmups*row.Concurrency + row.Count
+	inputs := &measureInputs{live: map[*measureInput]struct{}{}}
+	defer func() { res.InputRetention = inputs.snapshot() }()
+	res.RequestRecordCapacity = total
+	res.ResourceRecordCapacity = budget.ResourceRecords
+	var completedSamples []atomic.Pointer[measureSample]
+	var startedOffsets []atomic.Int64
+	var resourceMu sync.Mutex
+	var liveBoundaries []measureResource
+	var rowWriteMu sync.Mutex
+	watchdogBase := res
+	watchdogBase.Resources = nil
+	watchdogBase.Samples = append([]measureSample(nil), res.Samples...)
+	watchdogDone := make(chan struct{})
+	watchdogExited := make(chan struct{})
+	var sampled []measureResource
+	// A request is admitted before input preparation. The admitted operation
+	// includes preparation, owner dispatch, validation and release. Work admitted
+	// before STOP may still run; after the gate closes no new operation can start.
+	// This linearizes observable cancellation, not the external signal instant.
+	var admissionMu sync.Mutex
+	stopped, snapshotOwned, finished := false, false, false
+	ready := make(chan struct{})
+	stop, done := make(chan struct{}), make(chan struct{})
+	var sampleErr error
+	fatalCapture := make(chan error, 1)
+	// Final artifact ownership is handed off under the same gate as admission.
+	// Cancellation already observed here must be diagnosed, even if setup returns
+	// before the coordinator has been scheduled. Never overwrite its snapshot.
+	defer func() {
+		admissionMu.Lock()
+		if ctx.Err() != nil || snapshotOwned {
+			admissionMu.Unlock()
+			<-watchdogExited // failure coordinator exits the process after bounded writes
+			return
+		}
+		finished = true
+		close(watchdogDone)
+		admissionMu.Unlock()
+		<-watchdogExited
+	}()
+	go func() {
+		defer close(watchdogExited)
+		barrier.point(ctx, "watchdog")
+		timer := time.NewTimer(time.Hour)
+		timer.Stop()
+		var watchdog <-chan time.Time
+		setupReady := (<-chan struct{})(ready)
+		defer timer.Stop()
+		// Request deadline observation cannot interrupt native work, but bounds capture.
+		tick := time.NewTicker(50 * time.Millisecond)
+		defer tick.Stop()
+		reason, detail := "", ""
+		for reason == "" {
+			select {
+			case <-watchdogDone:
+				return
+			case <-setupReady:
+				setupReady = nil
+				timer.Reset(budget.Watchdog)
+				watchdog = timer.C
+			case <-watchdog:
+				reason, detail = "row_watchdog_expired", "in flight when row watchdog expired; request timeout/native hang not established"
+			case e := <-fatalCapture:
+				reason, detail = "resource_sampling_error", e.Error()
+			case <-stopCtx.Done():
+				reason, detail = "cooperative_stop", "package/provenance stop requested; unfinished request not joined"
+			case <-ctx.Done():
+				reason, detail = "row_context_expired", ctx.Err().Error()
+				if stopCtx.Err() != nil {
+					reason, detail = "cooperative_stop", "package/provenance stop requested; unfinished request not joined"
+				}
+			case <-tick.C:
+				admissionMu.Lock()
+				for j := range startedOffsets {
+					if start := startedOffsets[j].Load(); start > 0 && (completedSamples[j].Load() == nil || completedSamples[j].Load().Resource == 0) && time.Since(epoch).Nanoseconds()-start >= int64(budget.Request) {
+						reason, detail = "request_deadline_expired", fmt.Sprintf("request %d still in flight after request deadline; native hang not established", j)
+						break
+					}
+				}
+				admissionMu.Unlock()
+			}
+		}
+		admissionMu.Lock()
+		if finished {
+			admissionMu.Unlock()
+			return
+		}
+		stopped, snapshotOwned = true, true
+		resourceMu.Lock()
+		watchdogBase.Resources = append(watchdogBase.Resources, liveBoundaries...)
+		watchdogBase.Resources = append(watchdogBase.Resources, sampled...)
+		resourceMu.Unlock()
+		if len(watchdogBase.Samples) == 0 {
+			watchdogBase.Samples = make([]measureSample, total)
+			for j := range watchdogBase.Samples {
+				phase, worker := "first", 0
+				if j > 0 && j <= row.Warmups*row.Concurrency {
+					phase, worker = "warmup", (j-1)%row.Concurrency
+				} else if j > 0 {
+					phase, worker = "steady", (j-1-row.Warmups*row.Concurrency)%row.Concurrency
+				}
+				watchdogBase.Samples[j] = measureSample{ID: j, Worker: worker, Phase: phase, Result: "not_started"}
+			}
+		}
+		measureFailureSamples(&watchdogBase, completedSamples, startedOffsets, reason)
+		watchdogBase.InputRetention = inputs.snapshot()
+		admissionMu.Unlock()
+		watchdogBase.LoadAfter = measureLoad()
+		watchdogBase.StopReason = reason
+		watchdogBase.Error = "STOP: " + detail
+		// All data belongs to this snapshot: no live res slice, scheduler join,
+		// native teardown, callback reclamation or disk I/O on request owners.
+		rowWriteMu.Lock()
+		writeErr := measureWrite(path, watchdogBase)
+		rowWriteMu.Unlock()
+		if writeErr != nil {
+			fmt.Fprintln(os.Stderr, "STOP: diagnostic row flush failed:", writeErr)
+		}
+		if err := measureFailureStacks(path); err != nil {
+			fmt.Fprintln(os.Stderr, "STOP: diagnostic stacks write failed:", err)
+		}
+		os.Exit(2)
+	}()
 	profile := "controlled"
 	if row.Profile != "controlled" {
 		profile = "real-valkey"
@@ -499,9 +720,14 @@ func runMeasureRow(row measureRow, path string) (retErr error) {
 	if err != nil {
 		return err
 	}
-	defer ports.Close()
-	var resourceMu sync.Mutex
-	var liveBoundaries []measureResource
+	defer func() {
+		admissionMu.Lock()
+		closePorts := !snapshotOwned && ctx.Err() == nil
+		admissionMu.Unlock()
+		if closePorts {
+			ports.Close()
+		}
+	}()
 	stage := func(name string) error {
 		r, err := measureReadResource(name, epoch)
 		if err != nil {
@@ -530,22 +756,20 @@ func runMeasureRow(row measureRow, path string) (retErr error) {
 			return err
 		}
 	}
-	total := 1 + row.Warmups*row.Concurrency + row.Count
-	inputs := &measureInputs{live: map[*measureInput]struct{}{}}
-	defer func() { res.InputRetention = inputs.snapshot() }()
-	res.RequestRecordCapacity = total
-	res.ResourceRecordCapacity = budget.ResourceRecords
 	if ports.client != nil {
 		for j := 0; j < total; j++ {
 			if err = ports.prepareRun(ctx, measureInstance(row.Workload, j)); err != nil {
 				return err
 			}
+			inputs.mu.Lock()
 			inputs.stats.PrecreatedRuns++
+			inputs.mu.Unlock()
 		}
 		ports.precreated = true
 	}
-	completedSamples := make([]atomic.Pointer[measureSample], total)
-	startedOffsets := make([]atomic.Int64, total)
+	admissionMu.Lock()
+	completedSamples = make([]atomic.Pointer[measureSample], total)
+	startedOffsets = make([]atomic.Int64, total)
 	res.Samples = make([]measureSample, total)
 	for j := 0; j < total; j++ {
 		phase, worker := "first", 0
@@ -558,6 +782,7 @@ func runMeasureRow(row measureRow, path string) (retErr error) {
 		}
 		res.Samples[j] = measureSample{ID: j, Worker: worker, Phase: phase, Result: "not_started"}
 	}
+	admissionMu.Unlock()
 	res.SetupNS = time.Since(setupStart).Nanoseconds()
 	var mem runtime.MemStats
 	runtime.ReadMemStats(&mem)
@@ -565,63 +790,29 @@ func runMeasureRow(row measureRow, path string) (retErr error) {
 	if err = stage("ready"); err != nil {
 		return err
 	}
+	barrier.point(ctx, "setup")
 	// Persist planned IDs before owner timing. A Go watchdog snapshots completed
 	// immutable samples if FFI/ports get stuck; no disk writes during timed work.
-	if err = measureWrite(path, res); err != nil {
+	rowWriteMu.Lock()
+	admissionMu.Lock()
+	initialWrite := !snapshotOwned
+	if initialWrite {
+		watchdogBase = res
+		watchdogBase.Resources = nil
+		watchdogBase.Samples = append([]measureSample(nil), res.Samples...)
+	}
+	admissionMu.Unlock()
+	if initialWrite {
+		err = measureWrite(path, res)
+	}
+	rowWriteMu.Unlock()
+	if err != nil {
 		return err
 	}
-	watchdogBase := res
-	watchdogBase.Resources = nil
-	watchdogBase.Samples = append([]measureSample(nil), res.Samples...)
-	watchdogDone := make(chan struct{})
-	watchdogExited := make(chan struct{})
-	defer func() { close(watchdogDone); <-watchdogExited }()
-	sampled := make([]measureResource, 0, budget.ResourceRecords)
-	var stopWork atomic.Bool
-	stop, done := make(chan struct{}), make(chan struct{})
-	var sampleErr error
-	fatalCapture := make(chan error, 1)
-	go func() {
-		defer close(watchdogExited)
-		timer := time.NewTimer(budget.Watchdog)
-		defer timer.Stop()
-		// Request deadline observation cannot interrupt native work, but bounds capture.
-		tick := time.NewTicker(50 * time.Millisecond)
-		defer tick.Stop()
-		reason, detail := "", ""
-		for reason == "" {
-			select {
-			case <-watchdogDone:
-				return
-			case <-timer.C:
-				reason, detail = "row_watchdog_expired", "in flight when row watchdog expired; request timeout/native hang not established"
-			case e := <-fatalCapture:
-				reason, detail = "resource_sampling_error", e.Error()
-			case <-ctx.Done():
-				reason, detail = "row_context_expired", ctx.Err().Error()
-			case <-tick.C:
-				for j := range startedOffsets {
-					if start := startedOffsets[j].Load(); start > 0 && completedSamples[j].Load() == nil && time.Since(epoch).Nanoseconds()-start >= int64(budget.Request) {
-						reason, detail = "request_deadline_expired", fmt.Sprintf("request %d still in flight after request deadline; native hang not established", j)
-						break
-					}
-				}
-			}
-		}
-		stopWork.Store(true)
-		resourceMu.Lock()
-		watchdogBase.Resources = append(watchdogBase.Resources, liveBoundaries...)
-		watchdogBase.Resources = append(watchdogBase.Resources, sampled...)
-		resourceMu.Unlock()
-		measureFailureSamples(&watchdogBase, completedSamples, startedOffsets, reason)
-		watchdogBase.InputRetention = inputs.snapshot()
-		watchdogBase.LoadAfter = measureLoad()
-		watchdogBase.StopReason = reason
-		watchdogBase.Error = "STOP: " + detail
-		_ = measureWrite(path, watchdogBase)
-		measureFailureStacks(path)
-		os.Exit(2)
-	}()
+	resourceMu.Lock()
+	sampled = make([]measureResource, 0, budget.ResourceRecords)
+	resourceMu.Unlock()
+	close(ready)
 	// Preallocated bounded resource sampling, with live failure snapshots.
 	go func() {
 		defer close(done)
@@ -629,7 +820,9 @@ func runMeasureRow(row measureRow, path string) (retErr error) {
 		defer ticker.Stop()
 		fail := func(e error) {
 			sampleErr = e
-			stopWork.Store(true)
+			admissionMu.Lock()
+			stopped = true
+			admissionMu.Unlock()
 			fatalCapture <- e
 		}
 		for {
@@ -669,19 +862,39 @@ func runMeasureRow(row measureRow, path string) (retErr error) {
 	}()
 	var runErr error
 	var runErrOnce sync.Once
-	run := func(index, worker int, phase string) {
-		if stopWork.Load() {
-			return
+	run := func(index, worker int, phase string) bool {
+		defer barrier.point(ctx, "attempted")
+		admissionMu.Lock()
+		if stopped || ctx.Err() != nil {
+			stopped = true
+			admissionMu.Unlock()
+			runErrOnce.Do(func() { runErr = errors.New("STOP: request admission closed") })
+			return false
 		}
 		slotStart := time.Since(epoch).Nanoseconds()
+		admitted := res.Samples[index]
+		admitted.SlotStart, admitted.Result = slotStart, "preparation"
+		res.Samples[index] = admitted
+		completedSamples[index].Store(&admitted)
+		admissionMu.Unlock()
 		err := func() error {
+			if barrier != nil {
+				fmt.Println("control input preparation", index)
+			}
+			barrier.point(ctx, "preparation")
 			in, err := ports.input(ctx, row.Workload, index)
 			if err != nil {
 				return err
 			}
+			admissionMu.Lock()
 			inputs.retain(in)
+			prepared := admitted
+			prepared.Result = "prepared"
+			completedSamples[index].Store(&prepared)
+			admissionMu.Unlock()
+			barrier.point(ctx, "prepared")
 			validated := false
-			defer func() { inputs.release(in, validated) }()
+			defer func() { admissionMu.Lock(); inputs.release(in, validated); admissionMu.Unlock() }()
 			in.startOffset = &startedOffsets[index]
 			callCtx, callCancel := context.WithTimeout(ctx, budget.Request)
 			defer callCancel()
@@ -690,7 +903,9 @@ func runMeasureRow(row measureRow, path string) (retErr error) {
 			sample, result := measureRequest(callCtx, row.Lane, in, epoch, index, worker, phase)
 			sample.SlotStart = slotStart
 			res.Samples[index] = sample
+			admissionMu.Lock()
 			completedSamples[index].Store(&sample)
+			admissionMu.Unlock()
 			if sample.Timeout {
 				return context.DeadlineExceeded
 			}
@@ -711,11 +926,18 @@ func runMeasureRow(row measureRow, path string) (retErr error) {
 		// retained by samples or by the next call on this worker.
 		res.Samples[index].SlotEnd = time.Since(epoch).Nanoseconds()
 		sample := res.Samples[index]
+		admissionMu.Lock()
 		completedSamples[index].Store(&sample)
+		admissionMu.Unlock()
+		if index == 1 {
+			barrier.point(ctx, "published")
+		}
 		if err != nil {
 			runErrOnce.Do(func() {
 				runErr = fmt.Errorf("request %d: %w", index, err)
-				stopWork.Store(true)
+				admissionMu.Lock()
+				stopped = true
+				admissionMu.Unlock()
 				if errors.Is(err, context.DeadlineExceeded) {
 					res.StopReason = "request_deadline_expired"
 					if errors.Is(ctx.Err(), context.DeadlineExceeded) {
@@ -724,6 +946,7 @@ func runMeasureRow(row measureRow, path string) (retErr error) {
 				}
 			})
 		}
+		return err == nil
 	}
 	run(0, 0, "first")
 	if runErr != nil {
@@ -740,10 +963,9 @@ func runMeasureRow(row measureRow, path string) (retErr error) {
 			go func(worker int) {
 				defer wg.Done()
 				for j := worker; j < count; j += row.Concurrency {
-					if stopWork.Load() || ctx.Err() != nil {
+					if !run(begin+j, worker, phase) {
 						return
 					}
-					run(begin+j, worker, phase)
 				}
 			}(worker)
 		}
@@ -831,7 +1053,122 @@ func measureDeadlineContext(values, deadline context.Context) context.Context {
 	return measureJoinedContext{Context: deadline, values: values}
 }
 
+type measureChild struct {
+	row  measureRow
+	name string
+}
+
+func measureChildren(rows []measureRow) []measureChild {
+	children := []measureChild{}
+	seen := map[string]bool{}
+	for _, r := range rows {
+		key := r.Profile + "/" + r.Workload + "/" + r.Lane
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
+		r.Preflight, r.FirstOnly = true, true
+		r.Concurrency, r.Count, r.Warmups, r.Pair = 1, 0, 0, 0
+		r.Order = len(children)
+		children = append(children, measureChild{r, fmt.Sprintf("port-preflight-%03d", len(children))})
+	}
+	for j, r := range rows {
+		children = append(children, measureChild{r, fmt.Sprintf("row-%03d", j)})
+	}
+	return children
+}
+
+// Stream output as it arrives and record STARTED before launch. Hiding *os.File
+// from exec makes its copying goroutine return log write failures from Wait.
+// This is capture control, outside owner request timing.
+const measureCommandGrace = 5 * time.Second
+
+type measureLogWriter struct {
+	io.Writer
+	mu  sync.Mutex
+	err error
+}
+
+func (w *measureLogWriter) Write(p []byte) (int, error) {
+	n, err := w.Writer.Write(p)
+	if n != len(p) && err == nil {
+		err = io.ErrShortWrite
+	}
+	if err != nil {
+		w.mu.Lock()
+		w.err = errors.Join(w.err, err)
+		w.mu.Unlock()
+	}
+	return n, err
+}
+
+func measureRunCommand(cmd *exec.Cmd, base string) error {
+	start := time.Now()
+	cwd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+	record := map[string]any{
+		"argv": cmd.Args, "cwd": cwd,
+		"start_utc": start.UTC().Format(time.RFC3339Nano),
+		"status":    "STARTED", "error": "child incomplete; diagnostic flush unconfirmed",
+	}
+	overrides := []string{}
+	for _, value := range cmd.Env {
+		if strings.HasPrefix(value, "GOMAXPROCS=") || strings.HasPrefix(value, "RESPONSE_MEASURE_CHILD=") || strings.HasPrefix(value, "RESPONSE_MEASURE_ROW_PATH=") {
+			overrides = append(overrides, value)
+		}
+	}
+	record["env_overrides"] = overrides
+	path := base + "-command.json"
+	if err := measureWrite(path, record); err != nil {
+		return fmt.Errorf("initial command ledger: %w", err)
+	}
+	log, err := os.OpenFile(base+".log", os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
+	if err != nil {
+		return fmt.Errorf("child log open: %w", err)
+	}
+	writer := &measureLogWriter{Writer: log}
+	cmd.Stdout, cmd.Stderr = writer, writer
+	// CommandContext already owns the timeout. Request a snapshot first; Wait
+	// escalates after a bounded grace if native work or diagnostics cannot exit.
+	cmd.Cancel = func() error { return cmd.Process.Signal(syscall.SIGUSR1) }
+	cmd.WaitDelay = measureCommandGrace
+	runErr := cmd.Run()
+	// Wait can prefer a child exit error (e.g. SIGPIPE) over its copy error.
+	// Retain the actual write error independently so neither is hidden.
+	writer.mu.Lock()
+	logErr := errors.Join(writer.err, log.Sync(), log.Close())
+	writer.mu.Unlock()
+	record["status"] = "INCOMPLETE"
+	if runErr == nil && logErr == nil {
+		record["status"] = "COMPLETE"
+	}
+	record["error"] = fmt.Sprint(errors.Join(runErr, logErr))
+	record["end_utc"] = time.Now().UTC().Format(time.RFC3339Nano)
+	record["launch_setup_run_ns"] = time.Since(start).Nanoseconds()
+	if runErr != nil {
+		record["flush_status"] = "unconfirmed; inspect row/stacks; hard kill or OS failure may lose unpublished observations"
+	}
+	ledgerErr := measureWrite(path, record)
+	return errors.Join(runErr, logErr, ledgerErr)
+}
+
 func TestResponseContinuationMeasure(t *testing.T) {
+	packageStart := time.Now()
+	if *measureMode == "screen" {
+		// Defaults for every other mode remain the original full declaration.
+		defaults := map[string]string{"lanes": "go,native", "profiles": "controlled", "workloads": "run64,mixed8,run64k", "concurrency": "1"}
+		flag.Visit(func(f *flag.Flag) { delete(defaults, strings.TrimPrefix(f.Name, "response-measure-")) })
+		for key, value := range defaults {
+			if err := flag.Set("response-measure-"+key, value); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if *measurePackageRemaining <= 0 || *measurePackageRemaining > 15*time.Minute || runtime.GOMAXPROCS(0) != 8 {
+			t.Fatal("screen requires GOMAXPROCS=8 and positive remaining package budget <=15m")
+		}
+	}
 	if raw := os.Getenv("RESPONSE_MEASURE_CHILD"); raw != "" {
 		if *measureMode == "diagnostic" {
 			t.Fatal("diagnostic disallows private child marker")
@@ -839,6 +1176,16 @@ func TestResponseContinuationMeasure(t *testing.T) {
 		var row measureRow
 		if err := json.Unmarshal([]byte(raw), &row); err != nil {
 			t.Fatal(err)
+		}
+		if *measureMode == "screen" {
+			rows, err := measureRows("screen", *measureLaneSelection, *measureProfileSelection, *measureWorkloadSelection, *measureConcurrencySelection)
+			valid := false
+			for _, child := range measureChildren(measureControlRows(rows)) {
+				valid = valid || child.row == row
+			}
+			if err != nil || !valid || *measureDeclareOnly {
+				t.Fatal("invalid private screen child")
+			}
 		}
 		if err := runMeasureRow(row, os.Getenv("RESPONSE_MEASURE_ROW_PATH")); err != nil {
 			t.Fatal(err)
@@ -848,7 +1195,18 @@ func TestResponseContinuationMeasure(t *testing.T) {
 	if *measureMode == "" {
 		t.Skip("explicit measurement mode required")
 	}
+	if *measureDeclareOnly && *measureMode != "screen" {
+		t.Fatal("declare-only requires screen mode")
+	}
+	packageCtx, stopParent := signal.NotifyContext(context.Background(), syscall.SIGUSR1)
+	defer stopParent()
+	if *measureMode == "screen" {
+		var cancel context.CancelFunc
+		packageCtx, cancel = context.WithDeadline(packageCtx, packageStart.Add(*measurePackageRemaining))
+		defer cancel()
+	}
 	rows, err := measureRows(*measureMode, *measureLaneSelection, *measureProfileSelection, *measureWorkloadSelection, *measureConcurrencySelection)
+	rows = measureControlRows(rows)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -864,7 +1222,7 @@ func TestResponseContinuationMeasure(t *testing.T) {
 	if err = measureWrite(filepath.Join(*measureOut, "selection.json"), rows); err != nil {
 		t.Fatal(err)
 	}
-	if *measureMode == "plan" {
+	if *measureMode == "plan" || *measureDeclareOnly {
 		return
 	}
 	if *measureMode == "diagnostic" {
@@ -878,57 +1236,42 @@ func TestResponseContinuationMeasure(t *testing.T) {
 	}
 	// Preflight is a distinct process before ALL rows. It retains the literal,
 	// poison, admission, cancellation and lifetime suite (no Valkey helper setup).
-	preflight := exec.Command(os.Args[0], "-test.run=^TestResponseContinuation(Contract|Integrated(Contract|RejectsWholeBatch|SiblingProgressAndJoin|Close.*|RecoveredPanic.*|Poison.*|RetainsFullDescriptor|ReleasePort|Activation|AsyncPanicSemantics))$", "-test.timeout=90s")
+	preflightCtx, preflightCancel := context.WithCancel(packageCtx)
+	if *measureMode == "screen" {
+		preflightCancel()
+		preflightCtx, preflightCancel = context.WithTimeout(packageCtx, 90*time.Second-measureCommandGrace)
+	}
+	defer preflightCancel()
+	preflight := exec.CommandContext(preflightCtx, os.Args[0], "-test.run=^TestResponseContinuation(Contract|Integrated(Contract|RejectsWholeBatch|SiblingProgressAndJoin|Close.*|RecoveredPanic.*|Poison.*|RetainsFullDescriptor|ReleasePort|Activation|AsyncPanicSemantics))$", "-test.timeout=90s")
 	preflight.Env = append(os.Environ(), "GOMAXPROCS=8")
-	preflightStart := time.Now()
-	output, err := preflight.CombinedOutput()
-	if writeErr := measureWrite(filepath.Join(*measureOut, "preflight-command.json"), map[string]any{"argv": preflight.Args, "env_overrides": []string{"GOMAXPROCS=8"}, "cwd": func() string { dir, _ := os.Getwd(); return dir }(), "start_utc": preflightStart.UTC().Format(time.RFC3339Nano), "end_utc": time.Now().UTC().Format(time.RFC3339Nano), "error": fmt.Sprint(err)}); writeErr != nil {
-		t.Fatal(writeErr)
+	if err := measureRunCommand(preflight, filepath.Join(*measureOut, "preflight")); err != nil {
+		t.Fatalf("STOP: preflight: %v", err)
 	}
-	_ = os.WriteFile(filepath.Join(*measureOut, "preflight.log"), output, 0600)
-	if err != nil {
-		t.Fatalf("preflight: %v", err)
-	}
-	type child struct {
-		row  measureRow
-		name string
-	}
-	children := []child{}
-	seen := map[string]bool{}
-	for _, r := range rows {
-		key := r.Profile + "/" + r.Workload + "/" + r.Lane
-		if seen[key] {
-			continue
-		}
-		seen[key] = true
-		r.Preflight = true
-		r.Concurrency = 1
-		r.Count = 0
-		r.Warmups = 0
-		r.FirstOnly = true
-		r.Pair = 0
-		r.Order = len(children)
-		children = append(children, child{r, fmt.Sprintf("port-preflight-%03d", len(children))})
-	}
-	for j, r := range rows {
-		children = append(children, child{r, fmt.Sprintf("row-%03d", j)})
-	}
+	children := measureChildren(rows)
 	for j, child := range children {
 		row := child.row
 		path := filepath.Join(*measureOut, child.name+".json")
 		raw, _ := json.Marshal(row)
 		// Preserve planned contaminated rows even if the OS watchdog must kill a
 		// stuck native call. Missing request completion is STOP, never filtered.
-		_ = measureWrite(path, map[string]any{"row": row, "error": "child incomplete", "status": "STARTED"})
+		if err := measureWrite(path, map[string]any{"row": row, "error": "child incomplete", "status": "STARTED"}); err != nil {
+			t.Fatal("STOP: initial row write:", err)
+		}
 		budget, _ := measureCaptureBudget(*measureMode)
-		ctx, cancel := context.WithTimeout(context.Background(), budget.OuterKill)
+		// Reserve command shutdown within the existing outer bound.
+		ctx, cancel := context.WithTimeout(packageCtx, budget.OuterKill-measureCommandGrace)
+		if err := ctx.Err(); err != nil {
+			cancel()
+			t.Fatalf("STOP: package budget expired before child %d; retained %s", j, path)
+		}
 		cmd := exec.CommandContext(ctx, os.Args[0], "-test.run=^TestResponseContinuationMeasure$", "-test.timeout="+budget.TestTimeout.String())
+		if *measureMode == "screen" {
+			deadline, _ := packageCtx.Deadline()
+			cmd.Args = append(cmd.Args, "-response-measure-mode=screen", "-response-measure-package-remaining="+time.Until(deadline).String())
+		}
 		cmd.Env = append(os.Environ(), "GOMAXPROCS=8", "RESPONSE_MEASURE_CHILD="+string(raw), "RESPONSE_MEASURE_ROW_PATH="+path)
-		start := time.Now()
-		output, err = cmd.CombinedOutput()
+		err = measureRunCommand(cmd, strings.TrimSuffix(path, ".json"))
 		cancel()
-		_ = os.WriteFile(strings.TrimSuffix(path, ".json")+".log", output, 0600)
-		_ = measureWrite(strings.TrimSuffix(path, ".json")+"-command.json", map[string]any{"argv": cmd.Args, "env_overrides": []string{"GOMAXPROCS=8", "RESPONSE_MEASURE_CHILD=" + string(raw), "RESPONSE_MEASURE_ROW_PATH=" + path}, "start_utc": start.UTC().Format(time.RFC3339Nano), "launch_setup_run_ns": time.Since(start).Nanoseconds(), "error": fmt.Sprint(err)})
 		if err != nil {
 			t.Fatalf("STOP row %d (%+v): %v; retained %s", j, row, err, path)
 		}
@@ -1097,6 +1440,291 @@ func TestResponseMeasureSelectors(t *testing.T) {
 // and truthful failure artifacts. These do not execute measurement rows or add
 // production seams; functional/boundary behavior has its existing owners.
 func TestResponseMeasureCaptureControl(t *testing.T) {
+	if helper := os.Getenv("RESPONSE_MEASURE_CONTROL_HELPER"); helper != "" {
+		path := os.Getenv("RESPONSE_MEASURE_CONTROL_PATH")
+		fmt.Println("control child output before measurements")
+		switch helper {
+		case "row":
+			if err := runMeasureRow(measureRow{Seed: 26011, Lane: "native", Profile: "controlled", Workload: "run64", Concurrency: 1, Count: 3, Warmups: 1}, path); err != nil {
+				t.Fatal(err)
+			}
+		case "unresponsive":
+			signal.Ignore(syscall.SIGUSR1)
+			if err := os.WriteFile(path+".ready", []byte("ready"), 0600); err != nil {
+				t.Fatal(err)
+			}
+			for {
+				time.Sleep(time.Second)
+			}
+		case "final-ledger":
+			if err := os.Mkdir(path+"-command.json.tmp", 0700); err != nil {
+				t.Fatal(err)
+			}
+		case "large-output":
+			fmt.Print(strings.Repeat("x", 8192))
+		case "log-write-failure":
+			// Isolated OS limit: actual temp-file write fails after STARTED.
+			signal.Ignore(syscall.SIGXFSZ)
+			if err := syscall.Setrlimit(syscall.RLIMIT_FSIZE, &syscall.Rlimit{Cur: 4096, Max: 4096}); err != nil {
+				t.Fatal(err)
+			}
+			cmd := exec.CommandContext(context.Background(), os.Args[0], "-test.run=^TestResponseMeasureCaptureControl$")
+			cmd.Env = append(os.Environ(), "RESPONSE_MEASURE_CONTROL_HELPER=large-output")
+			if err := measureRunCommand(cmd, path); !errors.Is(err, syscall.EFBIG) {
+				t.Fatalf("wrong log write failure: %v", err)
+			}
+		}
+		return
+	}
+	// Actual row signal flushing owns the in-memory publication/lifetime risk;
+	// Python's process control regression separately owns expiry/provenance seals.
+	t.Run("signal preserves published row samples and streaming output", func(t *testing.T) {
+		for _, failFlush := range []bool{false, true} {
+			t.Run(fmt.Sprint(failFlush), func(t *testing.T) {
+				base := filepath.Join(t.TempDir(), "row")
+				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+				defer cancel()
+				cmd := exec.CommandContext(ctx, os.Args[0], "-test.run=^TestResponseMeasureCaptureControl$", "-test.timeout=15s")
+				cmd.Env = append(os.Environ(), "GOMAXPROCS=8", "RESPONSE_MEASURE_CONTROL_HELPER=row", "RESPONSE_MEASURE_CONTROL_BARRIER=published", "RESPONSE_MEASURE_CONTROL_PATH="+base+".json")
+				observed := make(chan error, 1)
+				go func() {
+					defer cancel()
+					for {
+						if _, err := os.Stat(base + ".json.ready"); err == nil {
+							break
+						}
+						select {
+						case <-ctx.Done():
+							observed <- ctx.Err()
+							return
+						case <-time.After(5 * time.Millisecond):
+						}
+					}
+					var err error
+					if failFlush {
+						err = os.Mkdir(base+".json.tmp", 0700)
+					}
+					observed <- err
+				}()
+				err := measureRunCommand(cmd, base)
+				if waitErr := <-observed; waitErr != nil {
+					t.Fatal(waitErr)
+				}
+				if err == nil {
+					t.Fatal("stopped child accepted")
+				}
+				output, readErr := os.ReadFile(base + ".log")
+				if readErr != nil || !bytes.Contains(output, []byte("control child output before measurements")) {
+					t.Fatalf("lost output: %s %v", output, readErr)
+				}
+				data, readErr := os.ReadFile(base + ".json")
+				if readErr != nil {
+					t.Fatal(readErr)
+				}
+				var result measureResult
+				if err := json.Unmarshal(data, &result); err != nil {
+					t.Fatal(err)
+				}
+				if failFlush {
+					if !bytes.Contains(output, []byte("diagnostic row flush failed")) {
+						t.Fatalf("silent flush failure: %s", output)
+					}
+				} else {
+					complete := 0
+					for _, sample := range result.Samples {
+						if sample.Complete && sample.SlotEnd > 0 {
+							complete++
+						}
+					}
+					if complete < 2 || complete >= len(result.Samples) || result.StopReason != "cooperative_stop" || result.Error == "" || len(result.Resources) < 3 {
+						t.Fatalf("lost partial observations: completed=%d/%d stop=%s resources=%d error=%s", complete, len(result.Samples), result.StopReason, len(result.Resources), result.Error)
+					}
+					if _, err := os.Stat(base + ".json-go-stacks.txt"); err != nil {
+						t.Fatal(err)
+					}
+				}
+				ledger, err := os.ReadFile(base + "-command.json")
+				if err != nil {
+					t.Fatal(err)
+				}
+				var command map[string]any
+				if err := json.Unmarshal(ledger, &command); err != nil {
+					t.Fatal(err)
+				}
+				if command["status"] != "INCOMPLETE" || command["end_utc"] == nil {
+					t.Fatalf("lost final command evidence: %s", ledger)
+				}
+			})
+		}
+	})
+	t.Run("unresponsive child has bounded hard kill and incomplete evidence", func(t *testing.T) {
+		base := filepath.Join(t.TempDir(), "child")
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		cmd := exec.CommandContext(ctx, os.Args[0], "-test.run=^TestResponseMeasureCaptureControl$", "-test.timeout=30s")
+		cmd.Env = append(os.Environ(), "RESPONSE_MEASURE_CONTROL_HELPER=unresponsive", "RESPONSE_MEASURE_CONTROL_PATH="+base)
+		ready := make(chan bool, 1)
+		go func() {
+			defer cancel()
+			for {
+				if _, err := os.Stat(base + ".ready"); err == nil {
+					ready <- true
+					return
+				}
+				select {
+				case <-ctx.Done():
+					ready <- false
+					return
+				case <-time.After(5 * time.Millisecond):
+				}
+			}
+		}()
+		start := time.Now()
+		err := measureRunCommand(cmd, base)
+		if !<-ready || err == nil || time.Since(start) > 8*time.Second {
+			t.Fatalf("unbounded/accepted child: %v %s", err, time.Since(start))
+		}
+		data, err := os.ReadFile(base + "-command.json")
+		if err != nil {
+			t.Fatal(err)
+		}
+		var record map[string]any
+		if err := json.Unmarshal(data, &record); err != nil {
+			t.Fatal(err)
+		}
+		if record["status"] != "INCOMPLETE" || record["flush_status"] == nil {
+			t.Fatalf("hard kill concealed: %s", data)
+		}
+	})
+	t.Run("artifact failures are fatal at command boundary", func(t *testing.T) {
+		for _, failure := range []string{"initial-ledger", "log-open", "final-ledger"} {
+			t.Run(failure, func(t *testing.T) {
+				base := filepath.Join(t.TempDir(), "child")
+				switch failure {
+				case "initial-ledger":
+					if err := os.Mkdir(base+"-command.json.tmp", 0700); err != nil {
+						t.Fatal(err)
+					}
+				case "log-open":
+					if err := os.Mkdir(base+".log", 0700); err != nil {
+						t.Fatal(err)
+					}
+				}
+				cmd := exec.CommandContext(context.Background(), os.Args[0], "-test.run=^TestResponseMeasureCaptureControl$")
+				cmd.Env = append(os.Environ(), "RESPONSE_MEASURE_CONTROL_HELPER=final-ledger", "RESPONSE_MEASURE_CONTROL_PATH="+base)
+				err := measureRunCommand(cmd, base)
+				expected := base + "-command.json.tmp"
+				if failure == "log-open" {
+					expected = base + ".log"
+				}
+				if err == nil || !strings.Contains(err.Error(), expected) {
+					t.Fatalf("wrong artifact failure: %v", err)
+				}
+				if failure != "initial-ledger" {
+					data, err := os.ReadFile(base + "-command.json")
+					if err != nil {
+						t.Fatal(err)
+					}
+					var record map[string]any
+					if err := json.Unmarshal(data, &record); err != nil {
+						t.Fatal(err)
+					}
+					if record["status"] != "STARTED" {
+						t.Fatalf("failed write lost incomplete ledger: %s", data)
+					}
+				}
+			})
+		}
+	})
+
+	t.Run("initial row artifact failure dispatches no request", func(t *testing.T) {
+		path := filepath.Join(t.TempDir(), "row.json")
+		if err := os.Mkdir(path+".tmp", 0700); err != nil {
+			t.Fatal(err)
+		}
+		err := runMeasureRow(measureRow{Seed: 26011, Lane: "go", Profile: "controlled", Workload: "run64", Concurrency: 1}, path)
+		if err == nil || !strings.Contains(err.Error(), path+".tmp") {
+			t.Fatalf("wrong initial row failure: %v", err)
+		}
+		if _, err := os.Stat(path); !os.IsNotExist(err) {
+			t.Fatalf("failed initial record accepted: %v", err)
+		}
+	})
+	t.Run("streaming log write failure cannot accept successful child", func(t *testing.T) {
+		base := filepath.Join(t.TempDir(), "child")
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		cmd := exec.CommandContext(ctx, os.Args[0], "-test.run=^TestResponseMeasureCaptureControl$", "-test.timeout=8s")
+		cmd.Env = append(os.Environ(), "RESPONSE_MEASURE_CONTROL_HELPER=log-write-failure", "RESPONSE_MEASURE_CONTROL_PATH="+base)
+		output, err := cmd.CombinedOutput()
+		if err != nil {
+			t.Fatalf("log failure control: %v %s", err, output)
+		}
+		data, err := os.ReadFile(base + "-command.json")
+		if err != nil {
+			t.Fatal(err)
+		}
+		var record map[string]any
+		if err := json.Unmarshal(data, &record); err != nil {
+			t.Fatal(err)
+		}
+		if record["status"] != "INCOMPLETE" || !strings.Contains(fmt.Sprint(record["error"]), "file too large") {
+			t.Fatalf("log write failure accepted: %s", data)
+		}
+	})
+	t.Run("fixed screen declaration and adjacent seed pairs", func(t *testing.T) {
+		rows, err := measureRows("screen", "go,native", "controlled", "run64,mixed8,run64k", "1")
+		if err != nil || len(rows) != 18 {
+			t.Fatalf("screen declaration: %v %v", rows, err)
+		}
+		again, _ := measureRows("screen", "go,native", "controlled", "run64,mixed8,run64k", "1")
+		a, _ := json.Marshal(rows)
+		b, _ := json.Marshal(again)
+		if !bytes.Equal(a, b) {
+			t.Fatal("screen order is not reproducible before execution")
+		}
+		seen := map[string]bool{}
+		steady, total, nativeFirst := 0, 0, 0
+		for j, r := range rows {
+			key := fmt.Sprintf("%d/%s/%s", r.Seed, r.Workload, r.Lane)
+			if seen[key] || r.Order != j || r.Seed != 26011+j/6 || r.Profile != "controlled" || r.Concurrency != 1 || r.FirstOnly || r.Preflight || r.Count != 500 || r.Warmups != 32 {
+				t.Fatalf("wrong fixed screen work: %+v", r)
+			}
+			seen[key] = true
+			steady += r.Count
+			total += 1 + r.Warmups + r.Count
+			if j%2 == 0 {
+				next := rows[j+1]
+				if r.Seed != next.Seed || r.Workload != next.Workload || r.Lane == next.Lane {
+					t.Fatalf("unpaired adjacent lanes: %+v %+v", r, next)
+				}
+				if r.Lane == "native" {
+					nativeFirst++
+				}
+			}
+		}
+		children := measureChildren(rows)
+		if steady != 9000 || total != 9594 || len(children) != 24 || nativeFirst == 0 || nativeFirst == 9 {
+			t.Fatalf("screen counts/order: steady=%d total=%d children=%d nativeFirst=%d", steady, total, len(children), nativeFirst)
+		}
+		for j, child := range children {
+			if j < 6 && (!child.row.Preflight || 1+child.row.Count+child.row.Warmups != 1 || !child.row.FirstOnly) {
+				t.Fatalf("port preflight expanded: %+v", child)
+			}
+			if j >= 6 && child.row != rows[j-6] {
+				t.Fatalf("screen row changed after declaration: %+v", child)
+			}
+		}
+		for _, selectors := range [][4]string{{"native", "controlled", "run64,mixed8,run64k", "1"}, {"go,native", "real-valkey-on", "run64,mixed8,run64k", "1"}, {"go,native", "controlled", "run64k", "1"}, {"go,native", "controlled", "run64,mixed8,run64k", "1,8"}} {
+			if _, err := measureRows("screen", selectors[0], selectors[1], selectors[2], selectors[3]); err == nil {
+				t.Fatalf("changed screen accepted: %v", selectors)
+			}
+		}
+		budget, err := measureCaptureBudget("screen")
+		if err != nil || budget.Watchdog != 60*time.Second || budget.RowContext != 90*time.Second || budget.TestTimeout != 110*time.Second || budget.OuterKill != 120*time.Second || budget.Request != 20*time.Second || budget.ResourceRecords != 120000 {
+			t.Fatalf("uncoordinated screen budget: %+v %v", budget, err)
+		}
+	})
 	t.Run("bounded authorization", func(t *testing.T) {
 		rows, err := measureRows("diagnostic", "native", "controlled", "run64k", "1")
 		if err != nil || len(rows) != 1 {

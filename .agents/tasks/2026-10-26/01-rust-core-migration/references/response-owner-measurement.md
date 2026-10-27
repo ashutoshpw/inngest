@@ -1,6 +1,18 @@
 # Matched response-owner measurement harness
 
 Updated 2026-10-27. Parent accepted the matched harness and the limited one-row diagnostic evidence after the matched-port/timing/raw-reproduction, bounded-input-retention, service-rate, RSS-boundary, strict-enclosure and final diagnostic reviews. This accepts harness and diagnostic integrity only; the measurement decision remains pending, with no performance verdict or additional campaign authorization.
+
+The next bounded design is the [fixed 18-row rejection screen](response-owner-screen.md).
+Its `screen` mode is implemented separately from smoke/campaign/diagnostic, with
+500 steady requests per row and a 15-minute package budget. Its accepted
+capture-evidence blocker repair reserves 6s shutdown + 4s failure sealing inside
+that budget, uses cooperative owned snapshots/streamed checked command evidence,
+and refuses incomplete seals; [precise best-effort guarantees](response-owner-screen.md#accepted-capture-evidence-blocker-repair-2026-10-27)
+exclude SIGKILL/OS durability promises. Implementation and
+control validation do not authorize execution; independent Luna review and parent
+acceptance remain required. Historical protocols and sealed reports below remain
+unchanged; no full-matrix retry, broader gates, transport choice or activation is
+implied.
 Base f9cf1892c0de4e1c9a6cedd8cbcfe8e2473e5ae0; isolated T3 worktree
 `t3/response-owner-measurement-harness`. Clean/no unique commits verified before fast-forward.
 
@@ -716,3 +728,17 @@ Phase 2, persistent-process comparison, native arm64 and activation gates stay
 open. The detailed [STOP report](response-owner-measurement-campaign-2026-10-27.md)
 and the [structured diagnostic audit](response-owner-diagnostic-2026-10-27.json)
 retain raw paths, hashes, commands and derivations.
+
+### STOP admission follow-up (2026-10-27)
+
+The remaining Luna review 02 P2 is repaired in the tagged capture harness with
+one synchronized request-admission/publication/failure-ownership gate, active
+before setup. An observed cancellation bars first/warmup/steady preparation;
+pre-STOP admitted work may continue and remains explicit in owned partials.
+This establishes an observable gate epoch, not instantaneous external cancellation.
+The real Python controller now has a combined Go-parent/command-runner/native-row
+regression with deterministic setup/preparation/prepared/published barriers and a
+five-slot helper. Pre-fix failure and final normal/race Go 17 + Python 15 checks,
+raw control partials and limits are recorded in the [screen admission follow-up](response-owner-screen.md#stop-admission-linearization-repair-2026-10-27).
+No screen/campaign or performance conclusion was produced; old sealed bundles
+are unchanged. Changes remain uncommitted for fresh independent review.
