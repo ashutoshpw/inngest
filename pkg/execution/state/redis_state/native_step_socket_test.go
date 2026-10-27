@@ -173,6 +173,10 @@ func (p *nativeRelay) serve(c net.Conn) {
 		}
 		name := string(f.items[0].value)
 		script := name == "EVAL" || name == "EVALSHA"
+		// The combined response operation uses the same socket for both scripts.
+		// Target queue faults by its actual key count, after SaveStep has replied.
+		faultMode := strings.TrimPrefix(p.mode, "queue-")
+		target := !strings.HasPrefix(p.mode, "queue-") || (script && len(f.items) > 2 && string(f.items[2].value) == "22")
 		p.mu.Lock()
 		index := len(p.commands)
 		command := nativeWireCommand{name: name, at: time.Now()}
@@ -182,12 +186,12 @@ func (p *nativeRelay) serve(c net.Conn) {
 			}
 		}
 		p.commands = append(p.commands, command)
-		fault := script && (p.faults == 0 || p.mode == "before-always") && p.mode != "" && p.mode != "write-stall"
+		fault := script && target && (p.faults == 0 || p.mode == "before-always") && p.mode != "" && p.mode != "write-stall"
 		if fault {
 			p.faults++
 		}
 		p.mu.Unlock()
-		if fault && (p.mode == "before" || p.mode == "before-always" || p.mode == "read-stall") {
+		if fault && (faultMode == "before" || faultMode == "before-always" || faultMode == "read-stall") {
 			if p.mode == "read-stall" {
 				<-p.stop
 			}
@@ -228,7 +232,7 @@ func (p *nativeRelay) serve(c net.Conn) {
 			p.commands[index].result = []int64{n}
 		}
 		p.mu.Unlock()
-		if fault && p.mode == "after" {
+		if fault && faultMode == "after" {
 			arrayCommit := len(reply.items) > 0 && (string(reply.items[0].value) == "0" || string(reply.items[0].value) == "1")
 			scalarCommit := reply.raw[0] == ':' && string(reply.value) == "0"
 			if !arrayCommit && !scalarCommit {

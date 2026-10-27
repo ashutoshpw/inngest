@@ -18,6 +18,9 @@ struct Input {
 #[derive(Deserialize)]
 #[serde(tag = "kind", deny_unknown_fields, rename_all = "camelCase")]
 enum Operation {
+    Response {
+        input: Box<response::ResponseInput>,
+    },
     Enqueue {
         response: Vec<u8>,
         config: PreparationConfig,
@@ -58,6 +61,17 @@ fn main() {
         }
     };
     let prepared = match input.operation {
+        Operation::Response { input: response } => {
+            let output = response::run(
+                *response,
+                input.state,
+                input.store,
+                input.budget_ms,
+                input.disabled_retries,
+            );
+            println!("{}", serde_json::to_string(&output).unwrap());
+            return;
+        }
         Operation::Enqueue {
             response,
             config,
