@@ -51,3 +51,71 @@ func TestNativeRustOutputAndDefaultStateLimits(t *testing.T) {
 		})
 	}
 }
+
+// Output() is the independent byte oracle; the literal errors below preserve
+// native admission precedence rather than pretending Go owns that admission gate.
+func TestNativeRustBoundedPreparation(t *testing.T) {
+	for _, tc := range []struct {
+		name, unit, tail, suffix, wantError string
+		repeat, wantBytes                   int
+	}{
+		{name: "exact-limit", unit: "x", repeat: consts.MaxStepOutputSize - 11, wantBytes: consts.MaxStepOutputSize},
+		{name: "plus-one-before-state-overflow", unit: "x", repeat: consts.MaxStepOutputSize - 10, wantBytes: consts.MaxStepOutputSize + 1, wantError: "ErrStepOutputTooLarge"},
+		{name: "html-expands-past-limit", unit: "<>&", repeat: consts.MaxStepOutputSize/18 + 1, wantBytes: (consts.MaxStepOutputSize/18+1)*18 + 11, wantError: "ErrStepOutputTooLarge"},
+		{name: "unicode-expands-past-limit", unit: "\u2028\u2029", repeat: consts.MaxStepOutputSize / 12, wantBytes: (consts.MaxStepOutputSize/12)*12 + 11, wantError: "ErrStepOutputTooLarge"},
+		{name: "ai-totalUsage-after-cap", unit: "x", repeat: consts.MaxStepOutputSize, tail: "totalUsage", wantError: "Ineligible"},
+		{name: "ai-inputTokens-after-cap", unit: "x", repeat: consts.MaxStepOutputSize, tail: "inputTokens", wantError: "Ineligible"},
+		{name: "invalid-after-cap-and-ai", unit: "x", repeat: consts.MaxStepOutputSize, tail: "totalUsage", suffix: ",", wantError: "InvalidJson"},
+		{name: "invalid-escape-after-cap", unit: "x", repeat: consts.MaxStepOutputSize, tail: `\u000x`, wantError: "InvalidJson"},
+		{name: "unsupported-opts-after-cap", unit: "x", repeat: consts.MaxStepOutputSize, suffix: `,"opts":{"type":"step.ai.wrap"}`, wantError: "Ineligible"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			data := `"` + strings.Repeat(tc.unit, tc.repeat) + tc.tail + `"`
+			body := `[{"op":"StepRun","id":"s","data":` + data + tc.suffix + `}]`
+			var accepted []state.GeneratorOpcode
+			err := json.Unmarshal([]byte(body), &accepted)
+			var goOutput string
+			if tc.wantError == "InvalidJson" {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				goOutput, err = accepted[0].Output()
+				require.NoError(t, err)
+				if tc.wantBytes != 0 {
+					require.Len(t, goOutput, tc.wantBytes)
+				}
+				if tc.wantError == "ErrStepOutputTooLarge" {
+					require.Same(t, state.ErrStepOutputTooLarge, accepted[0].Validate())
+				}
+			}
+			op := nativePreparation("", 1) // oversized output must win over state overflow
+			op["kind"] = "prepare"
+			op["response"] = nativeByteArray([]byte(body))
+			if tc.wantError == "" {
+				op["config"].(map[string]any)["stateLimit"] = nil
+			}
+			out := invokeNative(t, nativeInput("127.0.0.1:1", "unused", StateDefaultKey, false, op), nil, nil)
+			if tc.wantError != "" {
+				require.JSONEq(t, `"`+tc.wantError+`"`, string(out["preparationError"]))
+				return
+			}
+			require.NotContains(t, out, "preparationError")
+			var output []byte
+			require.NoError(t, json.Unmarshal(out["output"], &output))
+			require.Equal(t, []byte(goOutput), output)
+		})
+	}
+	t.Run("raw-whitespace-over-limit", func(t *testing.T) {
+		data := strings.Repeat(" ", consts.MaxStepOutputSize+1) + ` { "b": 2, "a": 1 } `
+		goOutput, err := (state.GeneratorOpcode{Op: enums.OpcodeStepRun, Data: json.RawMessage(data)}).Output()
+		require.NoError(t, err)
+		require.Equal(t, `{"data":{"b":2,"a":1}}`, goOutput)
+		op := nativePreparation(data, 0)
+		op["kind"] = "prepare"
+		out := invokeNative(t, nativeInput("127.0.0.1:1", "unused", StateDefaultKey, false, op), nil, nil)
+		require.NotContains(t, out, "preparationError")
+		var output []byte
+		require.NoError(t, json.Unmarshal(out["output"], &output))
+		require.Equal(t, []byte(goOutput), output)
+	})
+}

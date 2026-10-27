@@ -4,7 +4,10 @@
 
 Follow-up in [native enqueue](native-enqueue.md) repairs the helper transport cap
 and adds bounded discovery. The evidence and original scope below describe the
-accepted SaveStep delivery; full-response compaction remains a production gate.
+accepted SaveStep delivery as of PR #16, when preparation compaction was still
+unbounded. The accepted [bounded preparation memory increment](bounded-preparation-memory.md)
+supersedes that specific compaction limitation; input, parser and whole-process
+memory limits remain open.
 
 Parent accepted this bounded prototype after two independent reviews; it remains
 internal and has no production caller.
@@ -80,19 +83,24 @@ literals remain the primary oracle; additional differential cases call the real
 Go `GeneratorOpcode.Output` and JSON decoder. Four Rust tests protect literal
 preparation, admission/limits, scanner edges and already-cancelled admission.
 
-Preparation compacts the full accepted response before checking the prepared
-output limit; prepared output over 4 MiB then rejects before state-size validation.
-This output check does not bound input scanning or compaction memory. The opt-in
-test helper reads at most a 32 MiB stdin prefix and does not probe for or reject an
-extra byte, so an oversized transport can be truncated before JSON parsing.
-Neither limitation is repaired in this delivery. Before production wiring, reject
-oversized input explicitly and bound parsing/compaction before materializing the
-prepared output. State validation checks loaded size plus prepared bytes, accepts
-equality, uses 32 MiB for configured zero, and is absent when the callback-
-equivalent option is absent. Size errors expose the Go class/message/standard-error
-fields without pretending to preserve Go sentinel or error-chain identity across
-processes. This is an already-loaded observation, not a concurrent reservation or
-full state lifecycle owner.
+At the accepted PR #16 commit, preparation compacted the full accepted response
+before checking the prepared output limit; output over 4 MiB then rejected before
+state-size validation. The later [bounded preparation memory increment](bounded-preparation-memory.md)
+limits retained compacted data to 4,194,295 bytes and prepared output to 4,194,304
+bytes, with each buffer bounded independently. The buffers can coexist. Full raw
+response validation and AI-marker scanning still continue past the cap, while
+input, parser, CPU and whole-process memory remain outside the guarantee.
+
+The opt-in test helper still reads at most a 32 MiB stdin prefix without probing
+for or rejecting an extra byte, so an oversized transport can be truncated before
+JSON parsing. This input-cap limitation remains open. Before production wiring,
+reject oversized input explicitly and assess parser/process memory limits. State
+validation checks loaded size plus prepared bytes, accepts equality, uses 32 MiB
+for configured zero, and is absent when the callback-equivalent option is absent.
+Size errors expose the Go class/message/standard-error fields without pretending
+to preserve Go sentinel or error-chain identity across processes. This is an
+already-loaded observation, not a concurrent reservation or full state lifecycle
+owner.
 
 Typed run/function/account/environment/app identity and explicit layout/prefix
 generate the existing five KEYS in unchanged order. Both `NeverShard` and

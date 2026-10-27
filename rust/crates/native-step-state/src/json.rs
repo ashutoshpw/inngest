@@ -171,13 +171,56 @@ pub(crate) fn end(b: &[u8], start: usize) -> Result<usize, PreparationError> {
     Ok(i)
 }
 
-pub(crate) fn compact(b: &[u8]) -> Result<Vec<u8>, PreparationError> {
+// Retain only the compacted prefix needed by the prepared-output limit. Keep
+// scanning emitted bytes after overflow so late AI markers retain precedence.
+pub(crate) struct Compacted {
+    pub(crate) bytes: Vec<u8>,
+    pub(crate) oversized: bool,
+    pub(crate) has_ai: bool,
+    tail: [u8; 11],
+    limit: usize,
+}
+impl Compacted {
+    fn append(&mut self, bytes: &[u8]) {
+        if !self.has_ai {
+            for &byte in bytes {
+                self.tail.copy_within(1.., 0);
+                self.tail[10] = byte;
+                if &self.tail[1..] == b"totalUsage" || &self.tail == b"inputTokens" {
+                    self.has_ai = true;
+                    break;
+                }
+            }
+        }
+        let retained = bytes.len().min(self.limit - self.bytes.len());
+        self.oversized |= retained < bytes.len();
+        let needed = self.bytes.len() + retained;
+        if needed > self.bytes.capacity() {
+            let capacity = needed
+                .max(self.bytes.capacity().saturating_mul(2))
+                .min(self.limit);
+            self.bytes.reserve_exact(capacity - self.bytes.len());
+        }
+        self.bytes.extend_from_slice(&bytes[..retained]);
+    }
+    fn equals(&self, bytes: &[u8]) -> bool {
+        !self.oversized && self.bytes == bytes
+    }
+}
+
+pub(crate) fn compact_bounded(b: &[u8], limit: usize) -> Result<Compacted, PreparationError> {
     let start = skip(b, 0);
     let finish = end(b, start)?;
     if skip(b, finish) != b.len() {
         return Err(PreparationError::InvalidJson);
     }
-    let mut out = Vec::with_capacity(finish - start);
+    let mut out = Compacted {
+        bytes: Vec::with_capacity(limit.min(finish - start)),
+        oversized: false,
+        has_ai: false,
+        tail: [0; 11],
+        limit,
+    };
     let mut quoted = false;
     let mut i = start;
     while i < finish {
@@ -185,30 +228,30 @@ pub(crate) fn compact(b: &[u8]) -> Result<Vec<u8>, PreparationError> {
         if quoted {
             match c {
                 b'\\' => {
-                    out.extend_from_slice(&b[i..i + 2]);
+                    out.append(&b[i..i + 2]);
                     i += 2;
                     continue;
                 }
                 b'"' => quoted = false,
                 b'<' => {
-                    out.extend_from_slice(b"\\u003c");
+                    out.append(b"\\u003c");
                     i += 1;
                     continue;
                 }
                 b'>' => {
-                    out.extend_from_slice(b"\\u003e");
+                    out.append(b"\\u003e");
                     i += 1;
                     continue;
                 }
                 b'&' => {
-                    out.extend_from_slice(b"\\u0026");
+                    out.append(b"\\u0026");
                     i += 1;
                     continue;
                 }
                 0xe2 if b.get(i + 1) == Some(&0x80)
                     && matches!(b.get(i + 2), Some(0xa8 | 0xa9)) =>
                 {
-                    out.extend_from_slice(if b[i + 2] == 0xa8 {
+                    out.append(if b[i + 2] == 0xa8 {
                         b"\\u2028"
                     } else {
                         b"\\u2029"
@@ -224,10 +267,15 @@ pub(crate) fn compact(b: &[u8]) -> Result<Vec<u8>, PreparationError> {
             i += 1;
             continue;
         }
-        out.push(c);
+        out.append(&[c]);
         i += 1;
     }
     Ok(out)
+}
+
+// Enqueue serialization retains its existing unrestricted compaction contract.
+pub(crate) fn compact(b: &[u8]) -> Result<Vec<u8>, PreparationError> {
+    Ok(compact_bounded(b, usize::MAX)?.bytes)
 }
 
 // Strict accepted-response boundary. Unknown or nonempty unsupported fields
@@ -270,8 +318,8 @@ pub(crate) fn response(raw: &[u8]) -> Result<(String, Option<&[u8]>), Preparatio
                 )
             }
             "data" => data = Some(value),
-            "opts" if compact(value)? == b"{}" || value == b"null" => {}
-            "metadata" if compact(value)? == b"[]" || value == b"null" => {}
+            "opts" if compact_bounded(value, 2)?.equals(b"{}") || value == b"null" => {}
+            "metadata" if compact_bounded(value, 2)?.equals(b"[]") || value == b"null" => {}
             "error" | "displayName" | "userland" if value == b"null" => {}
             // Ordinary SDK StepRun responses carry a name. It does not affect
             // output bytes or discovery identity; lifecycle remains Go-owned.
@@ -296,4 +344,41 @@ pub(crate) fn response(raw: &[u8]) -> Result<(String, Option<&[u8]>), Preparatio
         .filter(|s| !s.is_empty())
         .ok_or(PreparationError::Ineligible)?;
     Ok((id, data))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn compact_retains_a_bounded_prefix_and_scans_past_it() {
+        // Independent compacted bytes include expansion and removed whitespace.
+        let raw = " [ \"<>&\u{2028}\u{2029}\", \"xxxxxxxxxxxxxxxx totalUsage\" ] ";
+        let expected = br#"["\u003c\u003e\u0026\u2028\u2029","xxxxxxxxxxxxxxxx totalUsage"]"#;
+        for limit in [0, 1, 17, expected.len() - 1, expected.len()] {
+            let out = compact_bounded(raw.as_bytes(), limit).unwrap();
+            assert_eq!(out.bytes, expected[..limit.min(expected.len())]);
+            assert!(out.bytes.capacity() <= limit);
+            assert_eq!(out.oversized, expected.len() > limit);
+            assert!(
+                out.has_ai,
+                "AI marker after retained prefix must be detected"
+            );
+        }
+        for marker in ["totalUsage", "inputTokens"] {
+            for split in 0..=marker.len() {
+                let raw = format!("\"{}{}\"", "x".repeat(32 - split), marker);
+                let out = compact_bounded(raw.as_bytes(), 33).unwrap();
+                assert!(out.has_ai, "{marker} split at {split}");
+                assert!(out.oversized);
+                assert_eq!(out.bytes.len(), 33);
+                assert!(out.bytes.capacity() <= 33);
+            }
+        }
+        assert!(!compact_bounded(br#""total\u0055sage""#, 1).unwrap().has_ai);
+        assert!(matches!(
+            compact_bounded(b"[\"xxxxxxxxxxxx\",]", 1),
+            Err(PreparationError::InvalidJson)
+        ));
+    }
 }

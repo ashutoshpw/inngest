@@ -39,6 +39,24 @@ See [native SaveStep](references/native-save.md) for scope, test gates and evide
 
 See [native enqueue](references/native-enqueue.md). Acceptance covers one ordinary single non-AI StepRun native SaveStep followed by native discovery enqueue and fresh Go readback/scanner replay. It does not establish production wiring, atomic save-plus-enqueue, exactly-once behavior, crash recovery, or active-lease recovery. Phase 1 partial, Phase 2 open, bridge unset; internal only, licensing unresolved.
 
+## Bounded preparation memory increment (2026-10-27)
+
+- [x] Verify clean assigned worktree/no unique commits; fast-forward to PR18 `e840eff6a`.
+- [x] Inspect preparation/Go owners and test boundaries; retain validation and error order.
+- [x] Bound retained compacted output before envelope allocation; preserve helper cap repair.
+- [x] Author evidence: focused buffer, literal corpus, actual Go differential, save/enqueue integration, helper, and target builds.
+- [x] Luna review 01 found no correctness blockers; parent accepted the buffer fix.
+- [x] Commit, push, and open the documentation-reconciled fix as a PR stacked on PR18.
+
+See [bounded preparation memory](references/bounded-preparation-memory.md). Data
+compaction retains at most 4,194,295 bytes and prepared output at most 4,194,304
+bytes; these are per-buffer limits. Full response validation and AI-marker
+scanning continue past the output cap; AI/ineligibility rejection still precedes
+output-size rejection, which still precedes state-size rejection. Input/parser/
+whole-process memory remains unbounded. PR18 still has separate
+preparation/save and enqueue adapters orchestrated by Go tests; it is not a
+complete native response owner. Existing migration gates remain open.
+
 ## Delivery
 
 Use dedicated worktrees and small stacked PRs. Verify and record the first layer's base before implementation; each later layer targets its preceding branch. Follow the repository's conventional-title and PR-text rules in [validation and rollout](references/validation-rollout.md).

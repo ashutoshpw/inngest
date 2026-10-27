@@ -54,7 +54,12 @@ SCRIPT LOAD. The Go queue baseline did not pin command selection. Save and
 enqueue remain separate commits; lost ACK yields uncertainty, never certainty
 or automatic enqueue retry. Drained-owner replay does not prove crash recovery,
 fencing, atomicity, active-lease recovery or general exactly-once semantics.
-Full-value JSON compaction before the 4 MiB output limit remains a production gate.
+At the accepted PR #18 implementation commit, preparation still compacted the
+full value before checking the 4 MiB output limit. The later [bounded preparation
+memory increment](bounded-preparation-memory.md) supersedes that compaction claim
+for SaveStep preparation: retained data and prepared output now have independent
+4 MiB bounds. Input, parser and whole-process memory remain outside the guarantee;
+enqueue serialization keeps its existing unrestricted compaction API.
 
 ## Validation history
 
