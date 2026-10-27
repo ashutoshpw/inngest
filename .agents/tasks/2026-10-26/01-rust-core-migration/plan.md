@@ -69,11 +69,28 @@ complete native response owner. Existing migration gates remain open.
 
 This is prospective test evidence only; it does not claim a complete Go owner,
 production selector, native adapter, full source coverage or ownership transfer.
-Native follow-on requires a parent architecture decision: prove pre-effect
+At PR20 delivery, native follow-on required a parent architecture decision: prove pre-effect
 eligibility excludes relevant lifecycle/capacity/tracing effects, or preserve them
-through a single ordered Go handoff. Neither is selected or implemented here.
+through a single ordered Go handoff. The constructed test-only choice is now authorized below; production ownership remains unselected.
 See [input binding](references/step-run-input-binding.md). Phase 1 partial,
 Phase 2 open, bridge unset; PR18 remains separate native adapters, FFI NO_GO remains.
+
+## Constructed native response owner (parent amendment, 2026-10-27)
+
+- [x] Preserve assigned binding; verify clean/no unique work and fast-forward to PR20 `70e6536f206b2dc9253a09e6d1ffb37bd8d035eb`.
+- [x] Inspect source owners, skills, and accepted preparation/save/enqueue/input evidence.
+- [x] Implement one test-only native invocation owning preparation, accounting, accepted save/pending, conditional discovery/enqueue and disposition.
+- [x] Establish constructed exclusive domain from actual setup before strict native projection; retain all exclusions and SCREEN_NO_GO.
+- [x] Validate real-store faults, explicit native retries and fresh ordinary Go replay; preserve twelve baseline files.
+- [x] Record exact validation/hash evidence in [native response owner](references/native-response-owner.md), including author and independent review scope.
+- [x] Independent Sol interoperability review 01 and Luna semantics review 01 found no blockers; parent accepted the bounded constructed-domain owner.
+- [x] Commit and deliver the implementation/evidence as a conventional stacked PR against PR20; link the PR to the delivery and parent threads.
+
+Reduced-domain ownership and fresh-Go interop only. No production eligibility,
+observer equivalence, full handler parity, traffic, transport selection, benchmark,
+SDK change, queue consumer, fencing or activation. Go metrics, noop-span and clock
+operations are excluded. Metadata proposals/SavePending/reset are unnecessary in
+the admitted single StepRun/loaded-v2/no-force-plan domain and remain unimplemented.
 
 ## Delivery
 
@@ -123,6 +140,8 @@ Use dedicated worktrees and small stacked PRs. Verify and record the first layer
 - [ ] Supported-target builds, compatible persisted state, single ownership, staged rollout, and rollback are validated before Go retirement.
 
 ## References
+
+- [Native response owner](references/native-response-owner.md) — parent-amended test-only exclusive domain, one-invocation effects, real-store/replay proof, accepted validation, delivery and remaining gates.
 
 - [StepRun input binding](references/step-run-input-binding.md) — prospective Go-only source facts, actual effect observations, authoring gate, checks and limits.
 
