@@ -120,12 +120,12 @@ type continuationCase struct {
 // All decisions execute in the real Go owner. Recorders supply independent port
 // outcomes; they never read Expected or implement a continuation on Go's behalf.
 func TestResponseContinuationContract(t *testing.T) {
-	runResponseContinuationContract(t, func(ctx context.Context, e *executor, i *runInstance, resp *state.DriverResponse) error {
-		return e.HandleGeneratorResponse(ctx, i, resp)
+	runResponseContinuationContract(t, func(t *testing.T, ctx context.Context, e *executor, i *runInstance, resp *state.DriverResponse) error {
+		return runBoundStepRunContract(t, ctx, e, i, resp)
 	})
 }
 
-func runResponseContinuationContract(t *testing.T, run func(context.Context, *executor, *runInstance, *state.DriverResponse) error) {
+func runResponseContinuationContract(t *testing.T, run func(*testing.T, context.Context, *executor, *runInstance, *state.DriverResponse) error) {
 	data, err := os.ReadFile("testdata/compatibility/response-continuation-v1.json")
 	require.NoError(t, err)
 	var fixture struct {
@@ -255,7 +255,7 @@ func runResponseContinuationContract(t *testing.T, run func(context.Context, *ex
 				originalAttempt := i.item.Attempt
 				originalVersion, originalForce := i.md.Config.RequestVersion, i.md.Config.ForceStepPlan
 				i.item.GroupID = "original-group"
-				result := run(state.WithGroupID(context.Background(), "original-group"), e, i, i.resp)
+				result := run(t, state.WithGroupID(context.Background(), "original-group"), e, i, i.resp)
 				// Wait for every goroutine in this isolated bubble, including async
 				// listeners. Missing callbacks fail the literal count assertion;
 				// no expected-count WaitGroup or timed absence window is needed.
