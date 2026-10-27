@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "crates/native-step-state",
     "crates/opcode-kernel",
     "crates/opcode-bridge",
     "crates/response-continuation",

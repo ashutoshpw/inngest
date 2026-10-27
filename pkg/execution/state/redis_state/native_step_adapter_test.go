@@ -4,10 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"maps"
 	"slices"
 	"strconv"
-	"strings"
 	"testing"
 
 	"github.com/inngest/inngest/pkg/execution/state"
@@ -56,60 +54,8 @@ func TestNativeStepSaveAdapter(t *testing.T) {
 					require.NotContains(t, pre, keys[0])
 					require.NotContains(t, pre, keys[2])
 					require.Equal(t, int64(-1), pre[keys[1]].PTTL)
-					initial := maps.Clone(f.InitialMetadata)
-					if scenario == "input-metadata" {
-						initial["state_size"] = strconv.Itoa(f.InitialStateSizeWithInput)
-					}
-					tag := prefix
-					if sharded {
-						tag += ":00000000-0000-0000-0000-000000000003"
-					}
-					initialExpected := nativeSnapshot{
-						"{" + tag + "}:key:run-key": {"string", "01ARZ3NDEKTSV4RRFFQ69G5FAV", 86400000},
-						keys[1]:                     {"hash", initial, -1},
-						strings.Replace(keys[0], ":actions:", ":bulk-events:", 1): {"string", f.InitialEvents, -1},
-					}
-					if scenario == "input-metadata" {
-						initialExpected[keys[3]] = nativeStoredValue{"hash", map[string]string{"s": f.Input}, -1}
-					}
-					if len(pending) > 0 {
-						sorted := slices.Clone(pending)
-						slices.Sort(sorted)
-						initialExpected[keys[4]] = nativeStoredValue{"set", sorted, -1}
-					}
-					requireNativeSnapshot(t, initialExpected, pre)
-					expected := nativeSnapshot{}
-					for k, v := range pre {
-						expected[k] = v
-					}
-					metadata := maps.Clone(initial)
-					stateDelta := f.OutputBytes
-					if scenario == "input-metadata" {
-						stateDelta -= f.InputBytes
-						require.Equal(t, map[string]string{"s": f.Input}, pre[keys[3]].Value)
-					}
-					add := func(field string, n int) {
-						v, e := strconv.Atoi(metadata[field])
-						if metadata[field] == "" {
-							v = 0
-							e = nil
-						}
-						require.NoError(t, e)
-						metadata[field] = strconv.Itoa(v + n)
-					}
-					require.Equal(t, tc.StateSizeDelta, stateDelta)
-					add("state_size", tc.StateSizeDelta)
-					add("step_count", tc.StepCount)
-					if delta > 0 {
-						add("metadata_size", delta)
-					}
-					expected[keys[1]] = nativeStoredValue{"hash", metadata, -1}
-					expected[keys[0]] = nativeStoredValue{"hash", map[string]string{"s": f.Output}, -1}
-					expected[keys[2]] = nativeStoredValue{"list", tc.Stack, -1}
-					delete(expected, keys[4])
-					if len(pending) == 2 {
-						expected[keys[4]] = nativeStoredValue{"set", []string{"held"}, -1}
-					}
+					requireNativeSnapshot(t, expectedNativeInitialSnapshot(t, f, keys, prefix, sharded, scenario == "input-metadata", pending), pre)
+					expected := expectedNativeSaveSnapshot(t, f, tc, keys, pre)
 					fault.afterCommit = func() {
 						got := snapshotNativeStore(t, ctx, reader)
 						requireNativeSnapshot(t, expected, got)

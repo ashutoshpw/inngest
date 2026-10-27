@@ -1,0 +1,290 @@
+{
+  "scope": "Internal prototype metadata evidence, not distribution permission. cargo metadata --locked and additive Cargo.lock diff at the PR #16 base.",
+  "selection": {
+    "redis": "=1.8.0",
+    "defaultFeatures": false,
+    "features": [
+      "script"
+    ],
+    "toolchain": "1.94.0"
+  },
+  "existingLockEntriesUnchanged": true,
+  "redisFeatures": [
+    "script"
+  ],
+  "addedPackages": [
+    {
+      "name": "arcstr",
+      "version": "1.2.0",
+      "checksum": "03918c3dbd7701a85c6b9887732e2921175f26c350b4563841d0958c21d57e6d",
+      "license": "Apache-2.0 OR MIT OR Zlib",
+      "rustVersion": "1.57.0"
+    },
+    {
+      "name": "bytes",
+      "version": "1.12.1",
+      "checksum": "fc652a48c352aef3ea3aed32080501cf3ef6ed5da78602a020c991775b0aff04",
+      "license": "MIT",
+      "rustVersion": "1.57"
+    },
+    {
+      "name": "combine",
+      "version": "4.6.9",
+      "checksum": "4356eba6976435498d05a311ee9fc486da3bc81c200d3f0d7dd9703b41913f92",
+      "license": "MIT",
+      "rustVersion": null
+    },
+    {
+      "name": "displaydoc",
+      "version": "0.2.7",
+      "checksum": "c6232dd377dcc64799954cbd3a9bb882e9cdc1308ccd87b1c098f1fb2eaf82a8",
+      "license": "MIT OR Apache-2.0",
+      "rustVersion": "1.71.0"
+    },
+    {
+      "name": "form_urlencoded",
+      "version": "1.2.2",
+      "checksum": "cb4cb245038516f5f85277875cdaa4f7d2c9a0fa0468de06ed190163b1581fcf",
+      "license": "MIT OR Apache-2.0",
+      "rustVersion": "1.51"
+    },
+    {
+      "name": "icu_collections",
+      "version": "2.4.0",
+      "checksum": "fe090a42a0d3140fed8c63263ed1fecc02422cb2f4bfe55cd8de2de1b8e105dd",
+      "license": "Unicode-3.0",
+      "rustVersion": "1.88"
+    },
+    {
+      "name": "icu_locale_core",
+      "version": "2.4.0",
+      "checksum": "25d29b57c17c6528d0dc4c2141cfa2d08200465acb537a3909c8b9b8a4a984c0",
+      "license": "Unicode-3.0",
+      "rustVersion": "1.88"
+    },
+    {
+      "name": "icu_normalizer",
+      "version": "2.4.0",
+      "checksum": "404a3b8c486f205c87fe7f23ab6894d84a4ad76d6e4671ae1981ba7def87c599",
+      "license": "Unicode-3.0",
+      "rustVersion": "1.88"
+    },
+    {
+      "name": "icu_normalizer_data",
+      "version": "2.4.0",
+      "checksum": "20f0088bfb7441f7a37fa0c9e20cb1e9cba1cac6b9ce8cd2a6dc44294f8e8cbc",
+      "license": "Unicode-3.0",
+      "rustVersion": "1.88"
+    },
+    {
+      "name": "icu_properties",
+      "version": "2.4.0",
+      "checksum": "2ea83d991c56158f7cf898bf86436c1dfe7c07ee82fe88951f2695c9f37a379f",
+      "license": "Unicode-3.0",
+      "rustVersion": "1.88"
+    },
+    {
+      "name": "icu_properties_data",
+      "version": "2.4.0",
+      "checksum": "b98f29af82d02b163fe50161388350e743bb3107cc8e8c2f7314cb505faddfcf",
+      "license": "Unicode-3.0",
+      "rustVersion": "1.88"
+    },
+    {
+      "name": "icu_provider",
+      "version": "2.4.0",
+      "checksum": "413099315636c588ee8f011190b329b971a09a8fae9d157e01dcae8379468514",
+      "license": "Unicode-3.0",
+      "rustVersion": "1.88"
+    },
+    {
+      "name": "idna",
+      "version": "1.1.0",
+      "checksum": "3b0875f23caa03898994f6ddc501886a45c7d3d62d04d2d90788d47be1b1e4de",
+      "license": "MIT OR Apache-2.0",
+      "rustVersion": "1.57"
+    },
+    {
+      "name": "idna_adapter",
+      "version": "1.2.2",
+      "checksum": "cb68373c0d6620ef8105e855e7745e18b0d00d3bdb07fb532e434244cdb9a714",
+      "license": "Apache-2.0 OR MIT",
+      "rustVersion": "1.86"
+    },
+    {
+      "name": "libc",
+      "version": "0.2.191",
+      "checksum": "65cd87c9a6d60536580b316ad985726104730a5151c99845f2490428ef91240a",
+      "license": "MIT OR Apache-2.0",
+      "rustVersion": "1.65"
+    },
+    {
+      "name": "litemap",
+      "version": "0.8.3",
+      "checksum": "47d9d19d1d6efa0109d2f65ff4c85cddd50bd572e5a00127ab10987290bcefae",
+      "license": "Unicode-3.0",
+      "rustVersion": "1.82"
+    },
+    {
+      "name": "native-step-state",
+      "version": "0.1.0",
+      "checksum": null,
+      "license": "Apache-2.0",
+      "rustVersion": "1.94.0"
+    },
+    {
+      "name": "percent-encoding",
+      "version": "2.3.2",
+      "checksum": "9b4f627cb1b25917193a259e49bdad08f671f8d9708acfd5fe0a8c1455d87220",
+      "license": "MIT OR Apache-2.0",
+      "rustVersion": "1.51"
+    },
+    {
+      "name": "potential_utf",
+      "version": "0.1.6",
+      "checksum": "d83eb9bc6d8e5cf568e7a1101d60ee05e81ed50ea106026f3d18deeb046d7661",
+      "license": "Unicode-3.0",
+      "rustVersion": "1.82"
+    },
+    {
+      "name": "redis",
+      "version": "1.8.0",
+      "checksum": "7acd809e80afa754c63f586955699d8990efe1c4b6613183ee5f027a11fbc8b5",
+      "license": "BSD-3-Clause",
+      "rustVersion": "1.88"
+    },
+    {
+      "name": "ryu",
+      "version": "1.0.23",
+      "checksum": "9774ba4a74de5f7b1c1451ed6cd5285a32eddb5cccb8cc655a4e50009e06477f",
+      "license": "Apache-2.0 OR BSL-1.0",
+      "rustVersion": "1.71"
+    },
+    {
+      "name": "sha1_smol",
+      "version": "1.0.1",
+      "checksum": "bbfa15b3dddfee50a0fff136974b3e1bde555604ba463834a7eb7deb6417705d",
+      "license": "BSD-3-Clause",
+      "rustVersion": null
+    },
+    {
+      "name": "smallvec",
+      "version": "1.16.4",
+      "checksum": "d0d5d4b1981b8bbbb7aed204cae5726d683d5d6ac7e74ec54122ea28f315e7c8",
+      "license": "MIT OR Apache-2.0",
+      "rustVersion": null
+    },
+    {
+      "name": "socket2",
+      "version": "0.6.5",
+      "checksum": "c3d1e2c7f27f8d4cb10542a02c49005dbd6e93095799d6f3be745fae9f8fedd4",
+      "license": "MIT OR Apache-2.0",
+      "rustVersion": "1.70"
+    },
+    {
+      "name": "stable_deref_trait",
+      "version": "1.2.1",
+      "checksum": "6ce2be8dc25455e1f91df71bfa12ad37d7af1092ae736f3a6cd0e37bc7810596",
+      "license": "MIT OR Apache-2.0",
+      "rustVersion": null
+    },
+    {
+      "name": "synstructure",
+      "version": "0.14.0",
+      "checksum": "901704edd0dfe137f1987838ee4f259e4e063c31371bdb423f7ae38ec6f77f02",
+      "license": "MIT",
+      "rustVersion": "1.71"
+    },
+    {
+      "name": "tinystr",
+      "version": "0.8.5",
+      "checksum": "abc840c238154d58f9e86b2792261edfde565a17696e1cda1a449de27979801a",
+      "license": "Unicode-3.0",
+      "rustVersion": "1.82"
+    },
+    {
+      "name": "url",
+      "version": "2.5.8",
+      "checksum": "ff67a8a4397373c3ef660812acab3268222035010ab8680ec4215f38ba3d0eed",
+      "license": "MIT OR Apache-2.0",
+      "rustVersion": "1.63"
+    },
+    {
+      "name": "utf8_iter",
+      "version": "1.0.4",
+      "checksum": "b6c140620e7ffbb22c2dee59cafe6084a59b5ffc27a8859a5f0d494b5d52b6be",
+      "license": "Apache-2.0 OR MIT",
+      "rustVersion": null
+    },
+    {
+      "name": "windows-link",
+      "version": "0.2.1",
+      "checksum": "f0805222e57f7521d6a62e36fa9163bc891acd422f971defe97d64e70d0a4fe5",
+      "license": "MIT OR Apache-2.0",
+      "rustVersion": "1.71"
+    },
+    {
+      "name": "windows-sys",
+      "version": "0.61.2",
+      "checksum": "ae137229bcbd6cdf0f7b80a31df61766145077ddf49416a728b02cb3921ff3fc",
+      "license": "MIT OR Apache-2.0",
+      "rustVersion": "1.71"
+    },
+    {
+      "name": "writeable",
+      "version": "0.6.4",
+      "checksum": "3ad82d2a33cdc9674dc7465672f271e096168fcdbe0f799d9e6db8c5892679dc",
+      "license": "Unicode-3.0",
+      "rustVersion": "1.82"
+    },
+    {
+      "name": "yoke",
+      "version": "0.8.4",
+      "checksum": "417ef3fcf6c300b7dbd25c85531a746931c02ad536f3cf4786ed1e88223340b3",
+      "license": "Unicode-3.0",
+      "rustVersion": "1.82"
+    },
+    {
+      "name": "yoke-derive",
+      "version": "0.8.4",
+      "checksum": "ec8ebde2db3681e8c9980cc27822030e68752690ddfa9473e739aeb4dbde6d71",
+      "license": "Unicode-3.0",
+      "rustVersion": "1.82"
+    },
+    {
+      "name": "zerofrom",
+      "version": "0.1.8",
+      "checksum": "0ec05a11813ea801ff6d75110ad09cd0824ddba17dfe17128ea0d5f68e6c5272",
+      "license": "Unicode-3.0",
+      "rustVersion": "1.71.1"
+    },
+    {
+      "name": "zerofrom-derive",
+      "version": "0.1.8",
+      "checksum": "f75b4683f6c7f45248d4d64056a24298c6281e0993356d7d1b4a1a962ef10d4a",
+      "license": "Unicode-3.0",
+      "rustVersion": "1.71.1"
+    },
+    {
+      "name": "zerotrie",
+      "version": "0.2.5",
+      "checksum": "4ea269c3bd32f0a32c321907a2ae912ba6f4649bb0fc764a15627e99a7095a3f",
+      "license": "Unicode-3.0",
+      "rustVersion": "1.82"
+    },
+    {
+      "name": "zerovec",
+      "version": "0.11.9",
+      "checksum": "f58a2799cfe9a1670c7ea8edbd52ef8edb93cb37a7f83bf31ba9e35d9dae6a40",
+      "license": "Unicode-3.0",
+      "rustVersion": "1.83"
+    },
+    {
+      "name": "zerovec-derive",
+      "version": "0.11.7",
+      "checksum": "c3743ddbf47738d929cd1ae2e199d40d0162979dfe31aef8ae646d2bf00bf97a",
+      "license": "Unicode-3.0",
+      "rustVersion": "1.83"
+    }
+  ]
+}

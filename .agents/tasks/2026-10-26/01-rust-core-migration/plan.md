@@ -16,7 +16,17 @@ Migrate the Inngest execution core from Go to Rust in behavior-preserving stages
 - The bridge spike compares FFI and a local process; bridge choice remains unset until independent review, matched measurements, and platform gates are complete. Keep decision logic deterministic and I/O-free.
 - **Sequencing amendment adopted 2026-10-26:** broad Phase 1 stays partial. The bounded Linux amd64/arm64 read-only bridge **entry gate is satisfied** by the accepted exact-slice Go oracle, recorded Go microbenchmarks, and bounded existing DB/Valkey/lifecycle evidence. Phase 2 is not done and no bridge is selected. Each later Rust migration needs its relevant additional-owner baseline first. Full rollout/retirement gates remain unchanged; see the [bounded bridge contract](references/opcode-bridge-contract.md).
 
-**Native-owner amendment accepted 2026-10-27:** stop current FFI-boundary expansion after SCREEN_NO_GO, retaining all negative evidence. The Go-only ordinary StepRun accepted-response → durable checkpoint → discovery baseline is accepted as a bounded owner baseline. Fresh Go runtime replay is the next layer, followed by native dependency qualification before a Rust port. No native Redis client, worker, production activation, bridge selection, or broader phase completion is authorized by this baseline. Rust remains pinned to 1.94 with existing serde/json/xxhash dependencies; reconcile repository SSPL and workspace Apache licensing before distribution.
+**Native-owner amendment accepted 2026-10-27:** stop current FFI-boundary expansion after SCREEN_NO_GO, retaining all negative evidence. The Go-only ordinary StepRun accepted-response → durable checkpoint → discovery baseline is accepted as a bounded owner baseline. Fresh Go runtime replay is the next layer, followed by native dependency qualification before a Rust port. That baseline did not authorize a native Redis client or worker; the separately accepted, internal native SaveStep prototype below remains unconnected to production and does not select a bridge or complete a broader phase. Rust remains pinned to 1.94 with existing serde/json/xxhash dependencies; reconcile repository SSPL and workspace Apache licensing before distribution.
+
+## Native SaveStep increment (2026-10-27)
+
+- [x] Native ordinary StepRun preparation and SaveStep only; real authenticated Valkey and fresh Go readers.
+- [x] Locally validate the synchronous Redis dependency, exact script fallback and bounded socket faults.
+- [x] Record author evidence and prototype limits; final focused normal/race checks pass with no skips.
+- [x] Parent acceptance after independent Luna-max and Sol interop reviews; neither found blockers.
+- [x] Commit and open the accepted internal prototype as a stacked PR; discovery/enqueue remains the next layer.
+
+See [native SaveStep](references/native-save.md) for scope, test gates and evidence. Broad Phase 1 remains partial, Phase 2 open, bridge unset.
 
 ## Delivery
 
@@ -66,6 +76,9 @@ Use dedicated worktrees and small stacked PRs. Verify and record the first layer
 - [ ] Supported-target builds, compatible persisted state, single ownership, staged rollout, and rollback are validated before Go retirement.
 
 ## References
+
+- [Native SaveStep](references/native-save.md) — internal prototype scope, parity, runtime faults, commands, review handoff and open gates.
+- [Native dependency inventory](references/native-save-dependencies.json) — exact additive lock entries and upstream license/MSRV metadata; no distribution grant.
 
 - [Fixed response-owner screen](references/response-owner-screen.md) — exact future scope, counts, budgets, decisions, stop rules and implementation review.
 - [Fixed screen results](references/response-owner-screen-results-2026-10-27.md) — completed one-screen NO_GO, every seed ratio, diagnostics, memory eligibility, hashes and independent-review STOP; links structured summary and CSVs.
