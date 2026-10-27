@@ -189,23 +189,20 @@ pub fn prepare_response(
         return Err(PreparationError::Ineligible);
     }
     let (step_id, data) = json::response(raw)?;
-    let compact = match data {
-        Some(d) => json::compact(d)?,
-        None => b"null".to_vec(),
-    };
-    // This conservative gate excludes every payload on which the current Go
-    // AI extractor might run. No attempt to silently omit generated metadata.
-    if compact.windows(10).any(|w| w == b"totalUsage")
-        || compact.windows(11).any(|w| w == b"inputTokens")
-    {
+    // Reserve the envelope's nine bytes before compaction. JSON validation and
+    // eligibility still run to completion; this bounds retained output only.
+    let compact = json::compact_bounded(data.unwrap_or(b"null"), MAX_STEP_OUTPUT - 9)?;
+    // Preserve the conservative AI gate even when its marker follows the cap.
+    if compact.has_ai {
         return Err(PreparationError::Ineligible);
     }
-    let mut output = b"{\"data\":".to_vec();
-    output.extend_from_slice(&compact);
-    output.push(b'}');
-    if output.len() > MAX_STEP_OUTPUT {
+    if compact.oversized {
         return Err(PreparationError::ErrStepOutputTooLarge);
     }
+    let mut output = Vec::with_capacity(compact.bytes.len() + 9);
+    output.extend_from_slice(b"{\"data\":");
+    output.extend_from_slice(&compact.bytes);
+    output.push(b'}');
     if let Some(limit) = config.state_limit {
         let limit = if limit == 0 { DEFAULT_MAX_STATE } else { limit };
         if config
