@@ -543,3 +543,36 @@ func StartValkey(t *testing.T, opts ...ValkeyOption) (*ValkeyContainer, error) {
 
 	return nil, fmt.Errorf("valkey is not available")
 }
+
+// AttachOwnedValkey never creates a container. The parent persists ownership
+// before launching its runner, so even SIGKILL cannot orphan an unknown store.
+func AttachOwnedValkey(t *testing.T, id, name, label, owner string) (*ValkeyContainer, error) {
+	provider, err := testcontainers.NewDockerProvider()
+	if err != nil {
+		return nil, err
+	}
+	ctr := &testcontainers.DockerContainer{ID: id}
+	ctr.SetProvider(provider)
+	inspect, err := ctr.Inspect(t.Context())
+	if err != nil {
+		return nil, err
+	}
+	if inspect.ID != id || inspect.Name != "/"+name || inspect.Config.Labels[label] != owner || !inspect.State.Running {
+		return nil, fmt.Errorf("owned Valkey identity/state mismatch")
+	}
+	// The ordinary helper cleanup remains safe if Python already removed it.
+	t.Cleanup(func() {
+		cleanupCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+		require.NoError(t, testcontainers.TerminateContainer(ctr, testcontainers.StopContext(cleanupCtx), testcontainers.StopTimeout(0)))
+	})
+	port, err := ctr.MappedPort(t.Context(), "6379/tcp")
+	if err != nil {
+		return nil, err
+	}
+	host, err := ctr.Host(t.Context())
+	if err != nil {
+		return nil, err
+	}
+	return &ValkeyContainer{Container: ctr, Addr: net.JoinHostPort(host, port.Port()), Password: "hello"}, nil
+}

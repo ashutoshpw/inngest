@@ -18,6 +18,7 @@ import (
 	"github.com/inngest/inngest/pkg/execution/state"
 	sv2 "github.com/inngest/inngest/pkg/execution/state/v2"
 	queuehelper "github.com/inngest/inngest/tests/execution/queue/helper"
+	"github.com/jonboulle/clockwork"
 	"github.com/stretchr/testify/require"
 )
 
@@ -287,6 +288,22 @@ func TestNativeRustResponseOwner(t *testing.T) {
 						// Full durable comparison against the real Go store/queue owners, using
 						// only post-effect UUID/time observations to bind generated fields.
 						got := snapshotNativeStore(t, ctx, r)
+						// This full-store reconstruction binds observed generated fields;
+						// advancing-clock semantics have a separate literal store oracle.
+						queueRaw, e := r.Do(ctx, r.B().Hgetall().Key("{queue}:queue:item").Build()).AsStrMap()
+						require.NoError(t, e)
+						require.Len(t, queueRaw, 1)
+						var observed osqueue.QueueItem
+						for _, raw := range queueRaw {
+							require.NoError(t, json.Unmarshal([]byte(raw), &observed))
+						}
+						pointer := observed.EnqueuedAt / 1000
+						if !keysMode {
+							pointer, e = r.Do(ctx, r.B().Zscore().Key("{queue}:partition:sorted").Member(md.ID.FunctionID.String()).Build()).AsInt64()
+							require.NoError(t, e)
+						}
+						// Key queues persist FIFO milliseconds in shadow indexes;
+						// partitionTime is unused by that branch of the script.
 						require.NoError(t, writer.Do(ctx, writer.B().Flushdb().Build()).Error())
 						_, e = svc.Create(ctx, sv2.CreateState{Metadata: md, Events: []json.RawMessage{json.RawMessage(f.InitialEvents[1 : len(f.InitialEvents)-1])}})
 						require.NoError(t, e)
@@ -303,7 +320,8 @@ func TestNativeRustResponseOwner(t *testing.T) {
 						literal.Data.Metadata = nil
 						job := f.Queue.JobID
 						literal.Data.JobID = &job
-						producer, _ := nativeQueueProducer(t, writer, QueueDefaultKey, keysMode, now)
+						producer, shard := nativeQueueProducer(t, writer, QueueDefaultKey, keysMode, now)
+						shard.(*queue).Clock = &nativeResponseBindingClock{Clock: clockwork.NewFakeClock(), times: []time.Time{time.UnixMilli(observed.EnqueuedAt), time.Unix(pointer, 0)}}
 						require.NoError(t, producer.Enqueue(ctx, literal.Data, time.UnixMilli(now), osqueue.EnqueueOpts{}))
 						requireNativeSnapshot(t, snapshotNativeStore(t, ctx, r), got)
 					}
@@ -428,4 +446,17 @@ func TestNativeRustResponseAdmission(t *testing.T) {
 			relay.mu.Unlock()
 		})
 	}
+}
+
+// Used only to reconstruct non-clock store effects from observed native bindings.
+// It does not establish clock parity; the advancing store oracle owns that proof.
+type nativeResponseBindingClock struct {
+	clockwork.Clock
+	times []time.Time
+}
+
+func (c *nativeResponseBindingClock) Now() time.Time {
+	at := c.times[0]
+	c.times = c.times[1:]
+	return at
 }

@@ -1,5 +1,24 @@
 # Constructed native response owner (2026-10-27)
 
+**Current scoped review state:** the [readiness handoff](response-owner-oneshot-readiness.md#current-scoped-review-handoff)
+records accepted bounded clock semantics, standalone precedence, Go
+artifact/comparator, controls, and resource-contract reviews. The later
+[pilot05 audit](response-owner-capability-pilot-05-audit.md) accepted retained
+evidence only; capability and publisher transition remain incomplete, memory
+INCONCLUSIVE, and performance/production verdicts absent. Prior unchanged-owner
+claims apply only to their original source prefix.
+
+
+**Acceptance qualification (2026-10-27):** the original acceptance below covered
+an explicit single-clock reduced domain. It did not establish parity with the
+separate Go discovery, producer, Redis enqueue and partition-pointer clocks.
+The separately authorized [bounded correction](response-owner-clock-correction.md)
+amends those native binding sites while retaining one owner invocation and the
+standalone explicit-clock API/fixtures. Later review acceptance is limited to
+the corrected declared cases; it does not establish full capability or
+production/capture readiness. The historical evidence below remains unchanged.
+
+
 State: parent accepted after independent Sol interoperability review 01 and Luna
 semantics review 01 found no blockers; implementation and validation are delivered
 in [PR #21](https://github.com/ashutoshpw/inngest/pull/21), a test-only stacked PR.

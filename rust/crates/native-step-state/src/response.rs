@@ -154,11 +154,32 @@ pub fn run(
     budget_ms: u64,
     disabled_retries: bool,
 ) -> Outcome {
+    run_with_clock(
+        input,
+        state,
+        store,
+        budget_ms,
+        disabled_retries,
+        &mut || {
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .map_err(|_| PreparationError::InvalidConfiguration)
+        },
+    )
+}
+fn run_with_clock(
+    input: ResponseInput,
+    state: StateConfig,
+    store: StoreConfig,
+    budget_ms: u64,
+    disabled_retries: bool,
+    clock: &mut impl FnMut() -> Result<Duration, PreparationError>,
+) -> Outcome {
     // Retain response facts, but finalize policy only after the invocation's
     // preparation/save/conditional-enqueue result. No Go policy handoff follows.
     let no_retry = input.no_retry;
     let retry_at = input.retry_at.clone();
-    let mut out = execute(input, state, store, budget_ms, disabled_retries);
+    let mut out = execute(input, state, store, budget_ms, disabled_retries, clock);
     if out.disposition == Disposition::Error {
         if no_retry {
             out.disposition = Disposition::NeverRetry;
@@ -175,6 +196,7 @@ fn execute(
     store: StoreConfig,
     budget_ms: u64,
     disabled_retries: bool,
+    clock: &mut impl FnMut() -> Result<Duration, PreparationError>,
 ) -> Outcome {
     let mut out = Outcome {
         disposition: Disposition::Error,
@@ -251,10 +273,7 @@ fn execute(
             return out;
         }
     };
-    out.now_ms = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .ok()
-        .and_then(|d| i64::try_from(d.as_millis()).ok());
+    out.now_ms = clock().ok().and_then(|d| i64::try_from(d.as_millis()).ok());
     let Some(now) = out.now_ms else {
         out.failure = Some("clock");
         return out;
@@ -276,7 +295,7 @@ fn execute(
             event_id: input.event_id,
             event_ids: input.event_ids,
         };
-        let request = match EnqueueRequest::new(&state, &step, &discovery) {
+        let request = match EnqueueRequest::with_clock(&state, &step, &discovery, clock) {
             Ok(r) => r,
             Err(_) => {
                 out.failure = Some("discovery-construction");
@@ -298,4 +317,97 @@ fn execute(
     out.disposition = Disposition::Success;
     out.retry_at = None;
     out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Executed by the Go store-owning test with its authenticated helper store.
+    // This private unit-test boundary adds no descriptor field to the owner.
+    #[test]
+    #[ignore = "requires the authenticated store prepared by TestResponseOneShotClockStages"]
+    fn advancing_owner_store() {
+        let raw = std::io::read_to_string(std::io::stdin()).unwrap();
+        let value: serde_json::Value = serde_json::from_str(&raw).unwrap();
+        let descriptor = &value["descriptor"];
+        let case = value["case"].as_str().unwrap();
+        let times: &[u64] = match case {
+            "pending" => &[1700000000990],
+            "future-producer" => &[1700000000990, 1699999998000, 1699999999005],
+            "future-boundary" => &[1700000000990, 1699999998990, 1700000001005, 1700000001009],
+            "equal-ms" => &[1700000000990, 1700000000990, 1700000000990],
+            "sub-ms" => &[1700000000990, 1700000000990, 1700000000990, 1700000001009],
+            _ => &[1700000000990, 1700000000995, 1700000001005, 1700000001009],
+        };
+        let mut reads = 0;
+        let mut clock = || {
+            let at = times.get(reads).expect("unexpected clock stage");
+            reads += 1;
+            let mut time = Duration::from_millis(*at);
+            if case == "sub-ms" && reads == 3 {
+                time += Duration::from_nanos(1);
+            }
+            Ok(time)
+        };
+        let out = run_with_clock(
+            serde_json::from_value(descriptor["operation"]["input"].clone()).unwrap(),
+            serde_json::from_value(descriptor["state"].clone()).unwrap(),
+            serde_json::from_value(descriptor["store"].clone()).unwrap(),
+            5000,
+            true,
+            &mut clock,
+        );
+        assert_eq!(out.disposition, Disposition::Success);
+        assert_eq!(
+            reads,
+            times.len(),
+            "pending must not sample enqueue clocks; future/equal scores must not sample pointer clocks"
+        );
+        println!("CLOCK_OUTCOME {}", serde_json::to_string(&out).unwrap());
+        if case != "pending" {
+            let store: StoreConfig = serde_json::from_value(descriptor["store"].clone()).unwrap();
+            let client =
+                redis::Client::open((store.address.ip().to_string(), store.address.port()))
+                    .unwrap();
+            let mut reader = client.get_connection().unwrap();
+            redis::cmd("AUTH")
+                .arg(&store.password)
+                .query::<()>(&mut reader)
+                .unwrap();
+            let before: std::collections::BTreeMap<String, String> = redis::cmd("HGETALL")
+                .arg("{queue}:queue:item")
+                .query(&mut reader)
+                .unwrap();
+            let mut reads = 0;
+            let later = run_with_clock(
+                serde_json::from_value(descriptor["operation"]["input"].clone()).unwrap(),
+                serde_json::from_value(descriptor["state"].clone()).unwrap(),
+                store,
+                5000,
+                true,
+                &mut || {
+                    let at = times.get(reads).expect("unexpected duplicate clock stage");
+                    reads += 1;
+                    let mut time = Duration::from_millis(*at + 10000);
+                    if case == "sub-ms" && reads == 3 {
+                        time += Duration::from_nanos(1);
+                    }
+                    Ok(time)
+                },
+            );
+            assert_eq!(later.disposition, Disposition::Success);
+            assert_eq!(later.save.unwrap().error, ErrorClass::ErrIdempotentResponse);
+            assert_eq!(later.enqueue.unwrap().class, EnqueueClass::Duplicate);
+            assert_eq!(reads, times.len());
+            let after: std::collections::BTreeMap<String, String> = redis::cmd("HGETALL")
+                .arg("{queue}:queue:item")
+                .query(&mut reader)
+                .unwrap();
+            assert_eq!(
+                before, after,
+                "duplicate must preserve the first persisted timestamps"
+            );
+        }
+    }
 }

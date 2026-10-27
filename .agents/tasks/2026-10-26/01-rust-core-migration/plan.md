@@ -18,6 +18,146 @@ Migrate the Inngest execution core from Go to Rust in behavior-preserving stages
 
 **Native-owner amendment accepted 2026-10-27:** stop current FFI-boundary expansion after SCREEN_NO_GO, retaining all negative evidence. The Go-only ordinary StepRun accepted-response → durable checkpoint → discovery baseline is accepted as a bounded owner baseline. Fresh Go runtime replay is the next layer, followed by native dependency qualification before a Rust port. That baseline did not authorize a native Redis client or worker; the separately accepted, internal native SaveStep prototype below remains unconnected to production and does not select a bridge or complete a broader phase. Rust remains pinned to 1.94 with existing serde/json/xxhash dependencies; reconcile repository SSPL and workspace Apache licensing before distribution.
 
+## Current delivery handoff (2026-10-27; scoped work only)
+
+- [x] Preserve the accepted readiness/comparator and bounded native clock, accounting, and standalone-precedence repairs; record reviews only at their declared scopes.
+- [x] Parent accepted Sol's independent audit of retained pilot05 evidence. Preserve six actual children/six validated first observations and all partial artifacts; distinguish review acceptance from author execution and capability completion.
+- [x] Keep grants01/02 closed at zero attempts and grants03/04/05 spent after one attempt each. Existing Python/Go one-shot guards reject retained claim markers; no grant is reusable.
+- [ ] Resolve the open P1/P2 sampling and lifecycle findings through an explicit resource architecture decision before considering another capture.
+
+Pilot05 remains **INCOMPLETE/EXHAUSTED**; memory is **INCONCLUSIVE**, cross-row publisher transitions are **NOT ESTABLISHED**, and no performance, production, steady-state, language, tail, or transport verdict is accepted. See the [consolidated pilot05 audit](references/response-owner-capability-pilot-05-audit.md). This handoff does not authorize a new grant or implementation. The older sections below preserve their source-time review snapshots; any older pending-review wording is historical.
+
+Delivery is open in [PR #22](https://github.com/ashutoshpw/inngest/pull/22), stacked on [PR #21](https://github.com/ashutoshpw/inngest/pull/21), with base `t3/native-response-owner`. T3 lists both layers in the linked stack. The PR opening snapshot at `e7adbb35dac64062e4de8aee84ae2611286ad41d` was open, non-draft, mergeable, with no review decision or check runs reported. No merge, watch, polling, or force push.
+
+## Capability pilot 05 (2026-10-27; exhausted after one attempt)
+
+- [x] Read applicable protocol/authorization/resource contract; record scoped resourcecontractreview02 and all prior review acceptance.
+- [x] Preserve original1,331 history entries and later ledgers; applicable no-owner checks pass; install fresh pilot05 grant and build all four exact artifacts.
+- [x] Preflight current source/binary/tool/config/environment/paths before claim; existing CLI runs once in 21.612119956s within unchanged180/6/4, stops on strict owner field loss.
+- [x] Self-verify six actual child identities/six durable observations, one pre-child stopped slot, raw reconstruction refusal, cleanup/62 containers, archive/artifact/history seals; cross-row publisher sample transitions NOT established.
+- [x] Retain complete partial evidence and exact spent grant/claim/runner marker; update outcome and separate post-capture documentation provenance.
+- [x] Parent accepted Sol's independent audit of the retained pilot05 evidence; this is not full capability acceptance. No delegation or additional attempt authorized.
+
+See [pilot05 report and evidence](references/response-owner-capability-pilot-05.md) and [consolidated independent audit](references/response-owner-capability-pilot-05-audit.md). Evidence `/home/ashutosh/.cache/oneshot-capability-pilot-05-20261027/`; memory INCONCLUSIVE, capability incomplete, all prior no-go/platform/license/activation gates unchanged. Only grant/docs changed, no capture logic or privilege/policy/sampling changes. Earlier sections retain historical scopes.
+
+## Capability pilot 04 (2026-10-27; exhausted after one attempt)
+
+- [x] Record parent acceptance of FD repair and resourcebatchreview02 P2 closure, and all prior scoped reviews; verify pilot03 remains exhausted and preserve all historical evidence.
+- [x] Pass applicable spent-state/collector checks without null-specific assertions; install the exact fresh pilot04 registry grant only.
+- [x] Rebuild all four accepted artifacts and seal current source/toolchain/config/environment receipts; preflight before claim.
+- [x] Invoke the existing fixed 60-observation/eight-control CLI once: live Valkey FD denial stops after five validated observations and one terminated row in 21.196297150s; retain partials and exhaust grant.
+- [x] Refuse partial full-grid reconstruction; retain descriptive raw evidence, verify cleanup/62 other containers/1,112 historical files/source hashes, update outcome report and seal.
+- [ ] Parent-owned independent pilot04 result review; no delegation or additional run authorized.
+
+See [pilot04 report and evidence](references/response-owner-capability-pilot-04.md). Evidence root `/home/ashutosh/.cache/oneshot-capability-pilot-04-20261027/`; exact output is its `capture/` child and claim is its `rust-native-oneshot-pilot-04.claim` file. No algorithm, privilege, policy, threshold, commit, push, PR or campaign change. Prior sections retain historical scopes.
+
+## Collector-only repair (2026-10-27; no capture authorization)
+
+- [x] Preserve pilot03 failure classification/history; retain partial proc fields before FD reads and fail-stop on live/ambiguous denial or identity loss.
+- [x] Run focused Python fixtures/static checks and exactly one <=30s launcher with three sequential synthetic children; preserve every outcome.
+- [x] Record source delta/current hashes separately from historical build receipts; keep pilot03 spent and memory INCONCLUSIVE (known 699ms gap).
+- [x] Parent accepts FD repair and resourcebatchreview02 P2 closure; the separate pilot04 instruction authorizes one new attempt. Historical repair scope remains unchanged.
+
+See [collector amendment and evidence](references/response-owner-collector-repair.md). No owner/store/capture/benchmark/root/policy/delegation/commit/PR work.
+
+## Capability pilot 03 (2026-10-27; exhausted after one attempt)
+
+- [x] Record parent acceptance of authorizationreview01/all prior scoped reviews; preserve exhausted zero-attempt pilot01/02 and historical evidence; pass null-specific checks before grant.
+- [x] Install only the new source-owned grant with fresh exact external output/claim, current declaration SHA, one attempt and one-hour integer expiry.
+- [x] Rebuild all four exact artifacts and validate complete source/build/path receipts before claim; no workload store before timed capture.
+- [x] Run the existing CLI once; resource sampling permission failure stops slot 5, with five validated observations, one interrupted row and zero controls; seal raw/cleanup evidence and exhaust grant.
+- [x] Refuse full-grid reconstruction of partial evidence, verify all source/artifact/history hashes, record separate post-capture documentation delta and final limits.
+- [ ] Parent-owned independent result review; no second grant or retry is authorized.
+
+See [pilot03 authorization and evidence](references/response-owner-capability-pilot-03.md). No algorithm/other guard changes, delegation, commit, push, PR, campaign or production. Older sections retain historical scopes.
+
+## Bounded authorization state repair (2026-10-27; capture closed)
+
+- [x] Audit every entry, validator, reconstruction and receipt gate; separate accepted reviews, single-use grant and genuine result blockers.
+- [x] Implement the shared source-owned contract with authorization null; remove only stale review metadata/validator append and stop dispatch on real blockers.
+- [x] Verify synthetic authorization/durable/reconstruction controls and fresh Go normal/race builds; preserve historical receipts and source freeze.
+- [x] Fresh authorizationreview01 accepted by parent; new bounded pilot03 grant issued separately. Both prior zero-attempt grants remain exhausted.
+
+Reviews accepted; authorization none; capture closed. Full gate inventory, functional evidence, exact source changes and complete future enable steps (including validator path): [authorization state repair](references/response-owner-authorization-state.md). No pilot/capture/benchmark/delegation/commit/PR is authorized by this task.
+
+## Capability pilot 02 (2026-10-27; closed before capture)
+
+- [x] Record parent acceptance of readinessreview03, clockaccountingreview02, P3precedencereview01, runnerstopreview01 controls and declarationreview02 closure; preserve closed pilot01.
+- [x] Inspect unchanged capture paths under the new one-attempt authorization. STOP before capture: durable validator still appends an unconditional pending-review blocker, rejected only by final reconstruction. Retiring it requires an additional validator-path amendment beyond the permitted entry/receipt switches.
+- [x] Preserve executable sources and all 732 files across ten prior oneshot evidence directories; five existing focused Python methods pass, zero children/builds/Docker/capture workload. Seal new scope-stop evidence and close authorization EXHAUSTED; no implicit retry.
+- [ ] Parent-owned independent result review; no delegation or independent acceptance claimed here.
+
+See [pilot02 scope-stop report](references/response-owner-capability-pilot-02-scope-stop.md). The 180-second capture package never began; old build receipts remain historical. All earlier checklist/review descriptions below retain their historical scope.
+
+## Capture control implementation (2026-10-27; no capture authorization)
+
+- [x] Enforce per-slot acceptance and seal partial failures before the next dispatch.
+- [x] Bind direct Go entry to the central fixed declaration; independently prove its grid/pairs/order.
+- [x] Persist Docker ownership before work; bound and receipt parent cleanup of only the owned store.
+- [x] Run deterministic functional/synthetic controls and one bounded disposable Docker forced stop; rebuild Go normal/race artifacts.
+- [x] Record source/build/check receipts and protocol amendment; preserve sealed history and stop writes for independent review.
+
+Both capture guards remain BLOCKED. No owner/comparator semantics, Rust, thresholds, numeric profile, pilot, benchmark, delegation, commit or PR changes are authorized.
+
+See the [capture control amendment](references/response-owner-oneshot-readiness.md#capture-control-amendment-2026-10-27-pending-fresh-independent-review). Evidence is isolated in `/home/ashutosh/.cache/oneshot-capture-controls-20261027`; its bounded controls review is accepted. Capture remains blocked by the current P1/P2 findings and exhausted grants.
+
+## Capability pilot authorization and pre-capture scope stop (2026-10-27)
+
+- [x] Record parent acceptance of readinessreview03, Solclockaccountingreview02 and LunaP3precedencereview01, and exactly one 60-observation / at-most-eight-control / 180-second capability pilot authorization.
+- [x] Inspect the actual runner before enabling guards. STOP before capture under the explicit scope condition: immediate disposition/identity/observer validation and forced-stop Docker cleanup confirmation need capture logic beyond the permitted guard/receipt amendment.
+- [x] Preserve the frozen cache, executable sources and capture guards; run four existing focused declaration/authorization/budget methods. Zero pilot attempts, observations, workload controls, owner/synthetic children, builds or Docker calls. Close this authorization without an implied restart.
+- [ ] Independent review of this scope-stop report before delivery acceptance or another decision; no delegation was authorized.
+
+See the [new scope-stop report](/home/ashutosh/.cache/oneshot-capability-pilot-01-scope-stop-20261027/pilot-reference.md) and [current readiness amendment](references/response-owner-oneshot-readiness.md#capability-pilot-pre-capture-scope-stop-2026-10-27). Older pending checklists below retain their historical snapshot; parent review acceptance is recorded above. No performance gate or architecture decision follows.
+
+## Final bounded reconciliation (2026-10-27)
+
+- [x] Restrict comparator parity to generated Go Linux amd64 integer domain; disclose wider native usize wire behavior with executable controls.
+- [x] Enforce concrete structured build commands/settings/config and sanitize/record child environments; retain corruption/inheritance regressions.
+- [x] Rebuild combined Go normal/race/native/private-clock artifacts, verify identical checked binaries, run focused checks/readbacks and seal a fresh global receipt; stop checkout writes for review.
+- [x] Scoped independent reviews accepted for the Go artifact/comparator, native clock semantics, standalone precedence, controls, and resource contract; pilot05 was separately authorized and is now spent. These acceptances do not complete the capability or clear the open P1/P2 findings.
+
+See [final reconciliation](references/response-owner-oneshot-readiness.md#final-bounded-reconciliation-2026-10-27); prior snapshots remain historical.
+
+## Readiness review01 reconciliation (2026-10-27)
+
+- [x] Require declared save/enqueue plus independent durable item/keys/indexes/pending/accounting; preserve an intended omitted-write failure.
+- [x] Bind bounded raw readback to child/selection/receipt and validate it in Python; retain prior command/authorization/sealing repairs.
+- [x] Match i32/u32 wire ranges with boundary/rejection controls; keep loaded-v2 admission distinct.
+- [x] Rebuild current artifacts, run focused normal/race/Python/Rust checks and reconcile historical/combined source provenance and counts in [readiness evidence](references/response-owner-oneshot-readiness.md).
+- [x] Scoped independent semantics/fairness reviews accepted within their declared domains; the later pilot05 grant is spent. Both capture entries remain BLOCKED; memory INCONCLUSIVE.
+
+## Bounded semantic correction (2026-10-27)
+
+- [x] Preserve the uncommitted readiness prefix at base `e6c3f82c0146ed37ef626d739c75fc85057885b7`; no delegation/commit/PR/capture.
+- [x] Bind native discovery, producer FIFO, Redis enqueue and conditional pointer clocks at their logical owner stages; retain the standalone explicit-clock API and original fixtures.
+- [x] Consume the comparator's actual save accounting before cold connection; preserve genuine Go bootstrap errors and native NotSent.
+- [x] Verify literal advancing-clock store effects, pending stage suppression, duplicates, consumer reads/latency, refused connection, existing controls and relevant replay; retain failures and hashes.
+- [x] Scoped independent clock-semantics and standalone-precedence reviews accepted. Both future capture entries remain BLOCKED; no production parity claim.
+
+See [bounded semantic correction](references/response-owner-clock-correction.md) for exact source scope, provenance, counts and historical acceptance qualification.
+
+## One-shot readiness amendment (2026-10-27)
+
+- [x] Preserve assigned T3 worktree/binding; verify clean/no unique commits and fast-forward to PR21 `e6c3f82c0146ed37ef626d739c75fc85057885b7`.
+- [x] Read accepted native owner, actual Go primitives and prior measurement lessons; apply test authoring gate.
+- [x] Build test-only reduced Go descriptor comparator and child-aware bounded capture support; no production/Rust/ABI/Lua/fixture changes.
+- [x] Validate actual primitive/effect contracts, protocol, cleanup/failure artifacts and synthetic reconstruction; retain the observed wall-time mismatch as a readiness blocker.
+- [x] Document every bypass/asymmetry and future exact 60-observation/at-most-eight-control declaration under 180 seconds.
+- [x] Stop uncommitted for independent Luna + Sol fairness review. No delegation or capture authorized; actual capture requires blocker resolution and separate parent authorization.
+- [x] Parent accepted the scoped comparator, Go artifact, and control reviews; capture remains blocked by unresolved capability/resource findings, not waived.
+
+See [one-shot readiness protocol](references/response-owner-oneshot-readiness.md).
+That historical prefix observed real Go wall-time normalization versus the
+then-accepted single-clock native contract. The separately authorized clock and
+P3 amendments later received scoped review acceptance; both future entries
+still refuse capture because full capability and the open resource/lifecycle
+findings remain unresolved.
+This comparator is an experimental artifact, not a Go production latency baseline
+or evidence of a native/language advantage. FFI_NO_GO/SCREEN_NO_GO retained;
+Phase 1 partial, Phase 2 open, bridge unset. All activation/platform/license/
+fencing/recovery gates remain open.
+
 ## Native SaveStep increment (2026-10-27)
 
 - [x] Native ordinary StepRun preparation and SaveStep only; real authenticated Valkey and fresh Go readers.
@@ -141,6 +281,16 @@ Use dedicated worktrees and small stacked PRs. Verify and record the first layer
 
 ## References
 
+- [Consolidated pilot05 audit](references/response-owner-capability-pilot-05-audit.md) — independent evidence acceptance, incomplete coverage, open P1/P2 findings, and current gates.
+
+- [Capability pilot03](references/response-owner-capability-pilot-03.md) — one exhausted attempt, resource failure/partial counts, cleanup, four-role provenance and immutable source lifecycle.
+
+- [Authorization state repair](references/response-owner-authorization-state.md) — historical gate inventory and complete future activation protocol, accepted by parent before pilot03.
+
+- [One-shot readiness and review01 reconciliation](references/response-owner-oneshot-readiness.md) — durable-evidence/range repairs, final checks/counts and combined provenance; capture blocked.
+
+- [Bounded clock/accounting correction](references/response-owner-clock-correction.md) — separately authorized owner-stage semantics and retained evidence; capture blocked.
+
 - [Native response owner](references/native-response-owner.md) — parent-amended test-only exclusive domain, one-invocation effects, real-store/replay proof, accepted validation, delivery and remaining gates.
 
 - [StepRun input binding](references/step-run-input-binding.md) — prospective Go-only source facts, actual effect observations, authoring gate, checks and limits.
@@ -199,3 +349,22 @@ Use dedicated worktrees and small stacked PRs. Verify and record the first layer
 - [Native-step Go baseline](references/native-step-go-baseline.md) — accepted amendment, test-authoring gate, bounded persistence evidence and remaining gates.
 
 - [Native-step replay](references/native-step-replay.md) — parent-accepted fresh Go owner replay, three scenario evidence, eight passing validation commands, preliminary Redis client qualification, and remaining gates.
+
+## Resource contract amendment (2026-10-27)
+
+- [x] Bind owner accounting to supervisor/runner/spawn PID + start ticks; unknown discovery fails closed.
+- [x] Make only verified separate-store FD enumeration diagnostic; require authenticated INFO and all other store fields.
+- [x] Run one deterministic no-process fixture package within 30 seconds; preserve 1,112 history files and all pilot04 files.
+- [x] Seal source delta and evidence; parent later accepted its bounded resource-contract review. Remaining P1/P2 lifecycle findings stay open.
+
+Reference: [Resource contract amendment](references/response-owner-resource-contract.md).
+
+## Resource review P2 repair (2026-10-27)
+
+- [x] Inspect resource protocol and collector/Go test ownership; preserve entry source and historical hashes.
+- [x] Bind spawn receipts to the current grant, runner generation and declared active invocation; revalidate cached identities.
+- [x] Carry strict capacity failures with partial resource batches; isolate null authorization fixture from current spent registry.
+- [x] Run bounded no-process fixtures, focused Go normal/race and compile; seal fresh source/build evidence.
+- [x] Parent accepted the bounded resource-contract review; no new authorization, capture or performance claim follows.
+
+Reference: [Resource contract amendment](references/response-owner-resource-contract.md).

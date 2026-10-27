@@ -1,6 +1,6 @@
 use crate::{PreparationError, PreparedStep, StateConfig, json};
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, time::Duration};
 
 #[derive(Deserialize)]
 pub enum QueueMode {
@@ -176,6 +176,25 @@ impl EnqueueRequest {
         step: &PreparedStep,
         d: &DiscoveryConfig,
     ) -> Result<Self, PreparationError> {
+        Self::with_clock(state, step, d, &mut || {
+            // Retain standalone clock admission after state/eligibility checks.
+            if ulid_time(&state.identity.run_id).is_some_and(|start| start > d.now_ms) {
+                return Err(PreparationError::InvalidConfiguration);
+            }
+            Ok(Duration::from_millis(
+                u64::try_from(d.now_ms).map_err(|_| PreparationError::InvalidConfiguration)?,
+            ))
+        })
+    }
+
+    // The response owner supplies its own clock, sampled at the corresponding
+    // producer and Redis binding sites. The standalone API stays explicit-clock.
+    pub(crate) fn with_clock(
+        state: &StateConfig,
+        step: &PreparedStep,
+        d: &DiscoveryConfig,
+        clock: &mut impl FnMut() -> Result<Duration, PreparationError>,
+    ) -> Result<Self, PreparationError> {
         state.keys()?;
         if !d.save_completed || d.has_pending || d.event_ids.len() > 1 {
             return Err(PreparationError::Ineligible);
@@ -204,7 +223,12 @@ impl EnqueueRequest {
             .checked_sub(priority)
             .ok_or(PreparationError::InvalidConfiguration)?;
         let start = ulid_time(&id.run_id).ok_or(PreparationError::InvalidConfiguration)?;
-        let score = if start == 0 {
+        // Go selects FIFO from the unadjusted discovery AtMS, then applies
+        // priority to the stored AtMS. Negative priority must not alter this gate.
+        let producer = clock()?;
+        let producer_ms = i64::try_from(producer.as_millis())
+            .map_err(|_| PreparationError::InvalidConfiguration)?;
+        let score = if start == 0 || d.now_ms > producer_ms.saturating_add(2000) {
             d.now_ms
         } else {
             start
@@ -212,9 +236,8 @@ impl EnqueueRequest {
                 .ok_or(PreparationError::InvalidConfiguration)?
         };
         // Bound to Lua's exact integer domain; this experiment does not accept
-        // overflow/float-rounded scores or clocks before the run starts.
-        if start > d.now_ms
-            || at == 0
+        // overflow/float-rounded scores. Standalone clock admission is above.
+        if at == 0
             || [at, score, d.now_ms]
                 .iter()
                 .any(|v| v.unsigned_abs() > (1_u64 << 53) - 1)
@@ -231,14 +254,33 @@ impl EnqueueRequest {
         if let Some(carrier) = &d.carrier {
             metadata.insert("user-otel-ctx", carrier.as_str());
         }
+        // Redis EnqueueItem hashes/sets the stored ID before sampling now.
+        let enqueue = clock()?;
+        let enqueue_ms = i64::try_from(enqueue.as_millis())
+            .map_err(|_| PreparationError::InvalidConfiguration)?;
+        // Go converts the FIFO score to a millisecond time before comparing it
+        // with the full precision Redis clock (including within one millisecond).
+        let before = i128::from(score) * 1_000_000 < enqueue.as_nanos() as i128;
+        let pointer_ms = if before {
+            i64::try_from(clock()?.as_millis())
+                .map_err(|_| PreparationError::InvalidConfiguration)?
+        } else {
+            score
+        };
+        if [enqueue_ms, pointer_ms]
+            .iter()
+            .any(|v| v.unsigned_abs() > (1_u64 << 53) - 1)
+        {
+            return Err(PreparationError::InvalidConfiguration);
+        }
         let item = encode(&QueueItem {
             id: &stored_id,
             at,
-            wt: d.now_ms,
+            wt: if before { enqueue_ms } else { d.now_ms },
             function: &id.function_id,
             env: &id.env_id,
             generation: 1,
-            eat: d.now_ms,
+            eat: enqueue_ms,
             data: Item {
                 group: &d.group_id,
                 env: &id.env_id,
@@ -342,12 +384,8 @@ impl EnqueueRequest {
             item,
             stored_id.as_bytes().to_vec(),
             score.to_string().into_bytes(),
-            score
-                .max(d.now_ms)
-                .div_euclid(1000)
-                .to_string()
-                .into_bytes(),
-            d.now_ms.to_string().into_bytes(),
+            pointer_ms.div_euclid(1000).to_string().into_bytes(),
+            enqueue_ms.to_string().into_bytes(),
             partition,
             id.function_id.as_bytes().to_vec(),
             id.account_id.as_bytes().to_vec(),
