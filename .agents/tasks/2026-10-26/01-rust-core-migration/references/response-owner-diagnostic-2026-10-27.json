@@ -1,0 +1,580 @@
+{
+  "schema": 1,
+  "status": "DIAGNOSTIC_CAPTURE_COMPLETE_NO_PERFORMANCE_VERDICT",
+  "parent_acceptance": {
+    "scope": "matched measurement harness and one-row diagnostic evidence only",
+    "matched_ports_timing_raw_reproduction": "accepted",
+    "bounded_input_retention": "accepted",
+    "service_guard_review": "Sol review 03: no blockers",
+    "rss_boundaries": "parent inspected six boundary guards and strict-enclosure edge fix",
+    "diagnostic_controls_source_evidence": "Luna final review: no blockers",
+    "next_measurement_decision": "pending separate authorization",
+    "comparative_gates_derived": false,
+    "performance_verdict": "none",
+    "transport_selected": false,
+    "activation_authorized": false
+  },
+  "base_head": "f9cf1892c0de4e1c9a6cedd8cbcfe8e2473e5ae0",
+  "branch": "t3/response-owner-measurement-harness",
+  "bundle": "/home/ashutosh/.cache/response-owner-diagnostic-20261027-dvs1uhhh",
+  "original_bundle": "/home/ashutosh/.cache/response-owner-review-20261027-jSVKc2",
+  "original_files_verified": 118,
+  "original_hash_mismatches": [],
+  "capture_files_verified": 8,
+  "capture_hash_mismatches": [],
+  "source_archive_sha256": "290b6f8447574e556ad46937c714f5eed671c0d49fb3f87c510b4cd48d9e7e3e",
+  "source_manifest_sha256": "adca2e53eb1bb13ec4d7fde5b3240ecfd03abb0217f16ae3ee83301e2e2f4a69",
+  "binary_path": "/home/ashutosh/.cache/response-owner-diagnostic-20261027-dvs1uhhh/executor-diagnostic.test",
+  "binary_sha256": "3d57f97bc63e20ecbe60e801f938488f3652bbf58c6b81fd52051a6dce129cf2",
+  "reducer_sha256": "9b97b6deeeca76b6b73e00eadd8fc5368fd5d0a7fc3e1a0ec32c1008d676f821",
+  "reducer_test_sha256": "891ac294c4c8cbcd193e4fc66f56a6cd1a31a4107875838cf907d34a0b155dcd",
+  "native_sha256": "562139fab7fec3ed44cdcb596276c1241d038ed95c0d34a165fa7d6d0f28ed7d",
+  "native_provenance": {
+    "native_source_paths": 17,
+    "native_source_mismatches": [],
+    "native_archive": "/home/ashutosh/.t3/worktrees/inngest/t3-0e6fce65/rust/target/x86_64-unknown-linux-gnu/release/libresponse_continuation_bridge.a",
+    "native_sha256": "562139fab7fec3ed44cdcb596276c1241d038ed95c0d34a165fa7d6d0f28ed7d",
+    "expected_native_sha256": "562139fab7fec3ed44cdcb596276c1241d038ed95c0d34a165fa7d6d0f28ed7d",
+    "native_rebuild": false,
+    "tool_paths": {
+      "rustc": "/home/ashutosh/.cargo/bin/rustc",
+      "cc": "/usr/bin/cc",
+      "gdb": null,
+      "pstack": null
+    }
+  },
+  "source_changed_during_capture": [],
+  "binary_changed_during_capture": false,
+  "native_changed_during_capture": false,
+  "source_changes_after_capture": [
+    ".agents/tasks/2026-10-26/01-rust-core-migration/plan.md",
+    ".agents/tasks/2026-10-26/01-rust-core-migration/references/response-owner-diagnostic-2026-10-27.md",
+    ".agents/tasks/2026-10-26/01-rust-core-migration/references/response-owner-measurement.md",
+    ".agents/tasks/2026-10-26/01-rust-core-migration/status.md",
+    "scripts/response-owner-measure.py",
+    "scripts/test-response-owner-measure.py"
+  ],
+  "implementation_changes_since_start": [
+    ".agents/tasks/2026-10-26/01-rust-core-migration/plan.md",
+    ".agents/tasks/2026-10-26/01-rust-core-migration/references/response-owner-diagnostic-2026-10-27.md",
+    ".agents/tasks/2026-10-26/01-rust-core-migration/references/response-owner-measurement-campaign-2026-10-27.md",
+    ".agents/tasks/2026-10-26/01-rust-core-migration/references/response-owner-measurement.md",
+    ".agents/tasks/2026-10-26/01-rust-core-migration/status.md",
+    "pkg/execution/executor/response_continuation_measure_test.go",
+    "scripts/response-owner-measure.py",
+    "scripts/test-response-owner-measure.py"
+  ],
+  "capture_selection": [
+    {
+      "preflight": false,
+      "seed": 26011,
+      "lane": "native",
+      "profile": "controlled",
+      "workload": "run64k",
+      "concurrency": 1,
+      "count": 5000,
+      "warmups_per_slot": 32,
+      "first_only": false,
+      "first_pair": 0,
+      "order": 0
+    }
+  ],
+  "measurement_row_files": [
+    "row-000.json"
+  ],
+  "extra_port_preflight_files": [],
+  "phase_counts": {
+    "first": 1,
+    "warmup": 32,
+    "steady": 5000
+  },
+  "samples": 5033,
+  "completed": 5033,
+  "closed_slots": 5033,
+  "callbacks": 5033,
+  "request_timeouts": 0,
+  "result_classes": {
+    "ok": 5033
+  },
+  "input_retention": {
+    "prepared": 5033,
+    "validated": 5033,
+    "released": 5033,
+    "remaining": 0,
+    "peak_inputs": 1,
+    "peak_payload_capacity_bytes": 65536,
+    "precreated_backend_runs": 0
+  },
+  "capture_budget": {
+    "post_setup_watchdog_ns": 210000000000,
+    "row_context_ns": 240000000000,
+    "test_timeout_ns": 260000000000,
+    "outer_kill_ns": 270000000000,
+    "request_deadline_ns": 20000000000,
+    "resource_records": 240000
+  },
+  "row_last_slot_elapsed_ns_for_budget": 156080065458,
+  "diagnostic_process_elapsed_seconds_for_budget": 156.630057,
+  "resource_records": 152459,
+  "sampler_records": 152453,
+  "lifecycle_resources": [
+    {
+      "stage": "baseline",
+      "offset_ns": 120345,
+      "utc": "2026-10-27T02:40:35.218604257Z",
+      "rss_bytes": 60186624,
+      "vmhwm_bytes": 60186624,
+      "fd": 6,
+      "threads": 12,
+      "goroutines": 6
+    },
+    {
+      "stage": "ready",
+      "offset_ns": 279324,
+      "utc": "2026-10-27T02:40:35.218763225Z",
+      "rss_bytes": 60186624,
+      "vmhwm_bytes": 60186624,
+      "fd": 6,
+      "threads": 12,
+      "goroutines": 6
+    },
+    {
+      "stage": "warmup",
+      "offset_ns": 1080509583,
+      "utc": "2026-10-27T02:40:36.298993494Z",
+      "rss_bytes": 100200448,
+      "vmhwm_bytes": 100466688,
+      "fd": 6,
+      "threads": 12,
+      "goroutines": 8
+    },
+    {
+      "stage": "end",
+      "offset_ns": 156090042570,
+      "utc": "2026-10-27T02:43:11.308526501Z",
+      "rss_bytes": 147828736,
+      "vmhwm_bytes": 147828736,
+      "fd": 6,
+      "threads": 12,
+      "goroutines": 7
+    },
+    {
+      "stage": "validated",
+      "offset_ns": 156090796323,
+      "utc": "2026-10-27T02:43:11.309280264Z",
+      "rss_bytes": 147828736,
+      "vmhwm_bytes": 147828736,
+      "fd": 6,
+      "threads": 12,
+      "goroutines": 7
+    },
+    {
+      "stage": "after_close",
+      "offset_ns": 156090867667,
+      "utc": "2026-10-27T02:43:11.309351578Z",
+      "rss_bytes": 147828736,
+      "vmhwm_bytes": 147828736,
+      "fd": 6,
+      "threads": 12,
+      "goroutines": 7
+    }
+  ],
+  "rss_status": "INCONCLUSIVE",
+  "rss_attribution": "whole-host RSS is not precise Go-versus-Rust attribution",
+  "rss_inconclusive_reasons": [
+    "sample: insufficient steady RSS sampling density/duration/coverage"
+  ],
+  "steady_rss_max_gap_ns": 17351622,
+  "rss_required_max_gap_ns": 5000000,
+  "raw_row_sha256": "f623e81fd3f4852321061b2d55902a31c38894414eb3ee5060fa2ad8b498b425",
+  "diagnostic_result_sha256": "e24de22a8b749adbfab9d1c43f25f188592f6fff28a63ebc565ab964b75e9ce7",
+  "original_row_sha256": "0ad6fa39ac4ea91d600c4fd7863bbedcf4731f00d03f73c9d885d5f1b2835676",
+  "no_comparative_derivation": true,
+  "failure_stacks": {
+    "triggered": false,
+    "reason": "capture completed; no failure stack capture",
+    "go_limit_bytes": 2097152,
+    "native_tool_available": false,
+    "native_limit": "gdb/pstack absent; no installation/elevation; no native backtrace claimed"
+  },
+  "host_load_before": "17.73 11.45 6.94 6/10745 1209055",
+  "host_load_after": "3.81 7.94 6.30 6/10390 1219905",
+  "cpu_availability": "Cpus_allowed_list:\t0-31",
+  "readable_cpu_max": {
+    "/sys/fs/cgroup/user.slice/cpu.max": "max 100000\n"
+  },
+  "commands": {
+    "budget-mutation-command": {
+      "argv": [
+        "/home/ashutosh/.cache/go1.26.4/go/bin/go",
+        "test",
+        "-p=2",
+        "-tags=response_continuation_spike",
+        "-overlay=/home/ashutosh/.cache/response-owner-diagnostic-20261027-dvs1uhhh/budget-mutation-overlay.json",
+        "./pkg/execution/executor",
+        "-run=^TestResponseMeasureCaptureControl/bounded_authorization$",
+        "-count=1",
+        "-v",
+        "-timeout=30s"
+      ],
+      "cwd": "/home/ashutosh/.t3/worktrees/inngest/t3-0e6fce65",
+      "environment": {
+        "GOTOOLCHAIN": "local",
+        "GOMAXPROCS": "2",
+        "GOTMPDIR": "/home/ashutosh/.cache/response-owner-diagnostic-20261027-dvs1uhhh/tmp",
+        "TMPDIR": "/home/ashutosh/.cache/response-owner-diagnostic-20261027-dvs1uhhh/tmp",
+        "CGO_ENABLED": null,
+        "GOFLAGS": null,
+        "CGO_CFLAGS": null,
+        "CGO_LDFLAGS": null,
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "GOMEMLIMIT": null,
+        "GOGC": null,
+        "GODEBUG": null,
+        "RESPONSE_MEASURE_VALKEY_ADDR": null
+      },
+      "start_utc": "2026-10-27T02:38:41.212741+00:00",
+      "exit": 1,
+      "elapsed_seconds": 9.555470053106546,
+      "end_utc": "2026-10-27T02:38:50.768356+00:00"
+    },
+    "capture-controls-final-command": {
+      "argv": [
+        "/home/ashutosh/.cache/response-owner-diagnostic-20261027-dvs1uhhh/executor-diagnostic.test",
+        "-test.run=^TestResponseMeasure(CaptureControl|Selectors|CompletionBoundaries)$",
+        "-test.v",
+        "-test.timeout=90s"
+      ],
+      "cwd": "/home/ashutosh/.t3/worktrees/inngest/t3-0e6fce65",
+      "environment": {
+        "GOTOOLCHAIN": "local",
+        "GOMAXPROCS": "8",
+        "GOTMPDIR": "/home/ashutosh/.cache/response-owner-diagnostic-20261027-dvs1uhhh/tmp",
+        "TMPDIR": "/home/ashutosh/.cache/response-owner-diagnostic-20261027-dvs1uhhh/tmp",
+        "CGO_ENABLED": null,
+        "GOFLAGS": null,
+        "CGO_CFLAGS": null,
+        "CGO_LDFLAGS": null,
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "GOMEMLIMIT": null,
+        "GOGC": null,
+        "GODEBUG": null,
+        "RESPONSE_MEASURE_VALKEY_ADDR": null
+      },
+      "start_utc": "2026-10-27T02:38:41.209124+00:00",
+      "exit": 0,
+      "elapsed_seconds": 0.3011254705488682,
+      "end_utc": "2026-10-27T02:38:41.510405+00:00"
+    },
+    "capture-control-command": {
+      "argv": [
+        "/home/ashutosh/.cache/response-owner-diagnostic-20261027-dvs1uhhh/executor.test",
+        "-test.run=^TestResponseMeasureCaptureControl$",
+        "-test.v",
+        "-test.timeout=30s"
+      ],
+      "cwd": "/home/ashutosh/.t3/worktrees/inngest/t3-0e6fce65",
+      "environment": {
+        "GOTOOLCHAIN": "local",
+        "GOMAXPROCS": "8",
+        "GOTMPDIR": "/home/ashutosh/.cache/response-owner-diagnostic-20261027-dvs1uhhh/tmp",
+        "TMPDIR": "/home/ashutosh/.cache/response-owner-diagnostic-20261027-dvs1uhhh/tmp",
+        "CGO_ENABLED": null,
+        "GOFLAGS": null,
+        "CGO_CFLAGS": null,
+        "CGO_LDFLAGS": null,
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "GOMEMLIMIT": null,
+        "GOGC": null,
+        "GODEBUG": null,
+        "RESPONSE_MEASURE_VALKEY_ADDR": null
+      },
+      "start_utc": "2026-10-27T02:36:57.072819+00:00",
+      "exit": 0,
+      "elapsed_seconds": 0.3157493472099304,
+      "end_utc": "2026-10-27T02:36:57.388814+00:00"
+    },
+    "functional-cwd-corrected-command": {
+      "argv": [
+        "/home/ashutosh/.cache/response-owner-diagnostic-20261027-dvs1uhhh/executor-diagnostic.test",
+        "-test.run=^TestResponseContinuation(Contract|Integrated(Contract|RejectsWholeBatch|SiblingProgressAndJoin|Close.*|RecoveredPanic.*|Poison.*|RetainsFullDescriptor|ReleasePort|Activation|AsyncPanicSemantics))$",
+        "-test.v",
+        "-test.timeout=90s"
+      ],
+      "cwd": "/home/ashutosh/.t3/worktrees/inngest/t3-0e6fce65/pkg/execution/executor",
+      "environment": {
+        "GOTOOLCHAIN": "local",
+        "GOMAXPROCS": "8",
+        "GOTMPDIR": "/home/ashutosh/.cache/response-owner-diagnostic-20261027-dvs1uhhh/tmp",
+        "TMPDIR": "/home/ashutosh/.cache/response-owner-diagnostic-20261027-dvs1uhhh/tmp",
+        "CGO_ENABLED": null,
+        "GOFLAGS": null,
+        "CGO_CFLAGS": null,
+        "CGO_LDFLAGS": null,
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "GOMEMLIMIT": null,
+        "GOGC": null,
+        "GODEBUG": null,
+        "RESPONSE_MEASURE_VALKEY_ADDR": null
+      },
+      "start_utc": "2026-10-27T02:38:41.207963+00:00",
+      "exit": 0,
+      "elapsed_seconds": 0.9376704655587673,
+      "end_utc": "2026-10-27T02:38:42.146176+00:00"
+    },
+    "capture-control-race-command": {
+      "argv": [
+        "/home/ashutosh/.cache/go1.26.4/go/bin/go",
+        "test",
+        "-p=2",
+        "-race",
+        "-tags=response_continuation_spike",
+        "./pkg/execution/executor",
+        "-run=^TestResponseMeasure(CaptureControl|Selectors|CompletionBoundaries)$",
+        "-count=1",
+        "-v",
+        "-timeout=90s"
+      ],
+      "cwd": "/home/ashutosh/.t3/worktrees/inngest/t3-0e6fce65",
+      "environment": {
+        "GOTOOLCHAIN": "local",
+        "GOMAXPROCS": "8",
+        "GOTMPDIR": "/home/ashutosh/.cache/response-owner-diagnostic-20261027-dvs1uhhh/tmp",
+        "TMPDIR": "/home/ashutosh/.cache/response-owner-diagnostic-20261027-dvs1uhhh/tmp",
+        "CGO_ENABLED": null,
+        "GOFLAGS": null,
+        "CGO_CFLAGS": null,
+        "CGO_LDFLAGS": null,
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "GOMEMLIMIT": null,
+        "GOGC": null,
+        "GODEBUG": null,
+        "RESPONSE_MEASURE_VALKEY_ADDR": null
+      },
+      "start_utc": "2026-10-27T02:37:51.542898+00:00",
+      "exit": 0,
+      "elapsed_seconds": 16.84255088865757,
+      "end_utc": "2026-10-27T02:38:08.385735+00:00"
+    },
+    "build-command": {
+      "argv": [
+        "/home/ashutosh/.cache/go1.26.4/go/bin/go",
+        "test",
+        "-p=2",
+        "-c",
+        "-tags=response_continuation_spike",
+        "-o",
+        "/home/ashutosh/.cache/response-owner-diagnostic-20261027-dvs1uhhh/executor.test",
+        "./pkg/execution/executor"
+      ],
+      "cwd": "/home/ashutosh/.t3/worktrees/inngest/t3-0e6fce65",
+      "environment": {
+        "GOTOOLCHAIN": "local",
+        "GOMAXPROCS": "2",
+        "GOTMPDIR": "/home/ashutosh/.cache/response-owner-diagnostic-20261027-dvs1uhhh/tmp",
+        "TMPDIR": "/home/ashutosh/.cache/response-owner-diagnostic-20261027-dvs1uhhh/tmp",
+        "CGO_ENABLED": null,
+        "GOFLAGS": null,
+        "CGO_CFLAGS": null,
+        "CGO_LDFLAGS": null,
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "GOMEMLIMIT": null,
+        "GOGC": null,
+        "GODEBUG": null,
+        "RESPONSE_MEASURE_VALKEY_ADDR": null
+      },
+      "start_utc": "2026-10-27T02:34:54.728859+00:00",
+      "exit": 0,
+      "elapsed_seconds": 9.360812649130821,
+      "end_utc": "2026-10-27T02:35:04.089839+00:00",
+      "binary_sha256": "bae6cfaa701897ec6f7e55dfe9eca1c0eaaa318b02441f8209707592bc52b4ee"
+    },
+    "functional-command": {
+      "argv": [
+        "/home/ashutosh/.cache/response-owner-diagnostic-20261027-dvs1uhhh/executor.test",
+        "-test.run=^TestResponseContinuation(Contract|Integrated(Contract|RejectsWholeBatch|SiblingProgressAndJoin|Close.*|RecoveredPanic.*|Poison.*|RetainsFullDescriptor|ReleasePort|Activation|AsyncPanicSemantics))$",
+        "-test.v",
+        "-test.timeout=90s"
+      ],
+      "cwd": "/home/ashutosh/.t3/worktrees/inngest/t3-0e6fce65",
+      "environment": {
+        "GOTOOLCHAIN": "local",
+        "GOMAXPROCS": "8",
+        "GOTMPDIR": "/home/ashutosh/.cache/response-owner-diagnostic-20261027-dvs1uhhh/tmp",
+        "TMPDIR": "/home/ashutosh/.cache/response-owner-diagnostic-20261027-dvs1uhhh/tmp",
+        "CGO_ENABLED": null,
+        "GOFLAGS": null,
+        "CGO_CFLAGS": null,
+        "CGO_LDFLAGS": null,
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "GOMEMLIMIT": null,
+        "GOGC": null,
+        "GODEBUG": null,
+        "RESPONSE_MEASURE_VALKEY_ADDR": null
+      },
+      "start_utc": "2026-10-27T02:36:57.078203+00:00",
+      "exit": 1,
+      "elapsed_seconds": 0.7975403442978859,
+      "end_utc": "2026-10-27T02:36:57.876004+00:00"
+    },
+    "reducer-checks-command": {
+      "argv": [
+        "python3",
+        "scripts/test-response-owner-measure.py"
+      ],
+      "cwd": "/home/ashutosh/.t3/worktrees/inngest/t3-0e6fce65",
+      "environment": {
+        "GOTOOLCHAIN": "local",
+        "GOMAXPROCS": "2",
+        "GOTMPDIR": "/home/ashutosh/.cache/response-owner-diagnostic-20261027-dvs1uhhh/tmp",
+        "TMPDIR": "/home/ashutosh/.cache/response-owner-diagnostic-20261027-dvs1uhhh/tmp",
+        "CGO_ENABLED": null,
+        "GOFLAGS": null,
+        "CGO_CFLAGS": null,
+        "CGO_LDFLAGS": null,
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "GOMEMLIMIT": null,
+        "GOGC": null,
+        "GODEBUG": null,
+        "RESPONSE_MEASURE_VALKEY_ADDR": null
+      },
+      "start_utc": "2026-10-27T02:34:52.911144+00:00",
+      "exit": 0,
+      "elapsed_seconds": 1.7751226015388966,
+      "end_utc": "2026-10-27T02:34:54.686414+00:00"
+    },
+    "build-final-command": {
+      "argv": [
+        "/home/ashutosh/.cache/go1.26.4/go/bin/go",
+        "test",
+        "-p=2",
+        "-c",
+        "-tags=response_continuation_spike",
+        "-o",
+        "/home/ashutosh/.cache/response-owner-diagnostic-20261027-dvs1uhhh/executor-diagnostic.test",
+        "./pkg/execution/executor"
+      ],
+      "cwd": "/home/ashutosh/.t3/worktrees/inngest/t3-0e6fce65",
+      "environment": {
+        "GOTOOLCHAIN": "local",
+        "GOMAXPROCS": "2",
+        "GOTMPDIR": "/home/ashutosh/.cache/response-owner-diagnostic-20261027-dvs1uhhh/tmp",
+        "TMPDIR": "/home/ashutosh/.cache/response-owner-diagnostic-20261027-dvs1uhhh/tmp",
+        "CGO_ENABLED": null,
+        "GOFLAGS": null,
+        "CGO_CFLAGS": null,
+        "CGO_LDFLAGS": null,
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "GOMEMLIMIT": null,
+        "GOGC": null,
+        "GODEBUG": null,
+        "RESPONSE_MEASURE_VALKEY_ADDR": null
+      },
+      "start_utc": "2026-10-27T02:37:50.397943+00:00",
+      "exit": 0,
+      "elapsed_seconds": 16.2024620808661,
+      "end_utc": "2026-10-27T02:38:06.600615+00:00",
+      "binary_sha256": "3d57f97bc63e20ecbe60e801f938488f3652bbf58c6b81fd52051a6dce129cf2"
+    },
+    "capture-command": {
+      "argv": [
+        "python3",
+        "scripts/response-owner-measure.py",
+        "capture",
+        "--mode",
+        "diagnostic",
+        "--binary",
+        "/home/ashutosh/.cache/response-owner-diagnostic-20261027-dvs1uhhh/executor-diagnostic.test",
+        "--out",
+        "/home/ashutosh/.cache/response-owner-diagnostic-20261027-dvs1uhhh/capture",
+        "--go",
+        "/home/ashutosh/.cache/go1.26.4/go/bin/go",
+        "--lanes",
+        "native",
+        "--profiles",
+        "controlled",
+        "--workloads",
+        "run64k",
+        "--concurrency",
+        "1"
+      ],
+      "cwd": "/home/ashutosh/.t3/worktrees/inngest/t3-0e6fce65",
+      "environment": {
+        "GOTOOLCHAIN": "local",
+        "GOMAXPROCS": "8",
+        "GOTMPDIR": "/home/ashutosh/.cache/response-owner-diagnostic-20261027-dvs1uhhh/tmp",
+        "TMPDIR": "/home/ashutosh/.cache/response-owner-diagnostic-20261027-dvs1uhhh/tmp",
+        "CGO_ENABLED": null,
+        "GOFLAGS": null,
+        "CGO_CFLAGS": null,
+        "CGO_LDFLAGS": null,
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "GOMEMLIMIT": null,
+        "GOGC": null,
+        "GODEBUG": null,
+        "RESPONSE_MEASURE_VALKEY_ADDR": null
+      },
+      "start_utc": "2026-10-27T02:40:14.285048+00:00",
+      "exit": 0,
+      "elapsed_seconds": 178.50344986468554,
+      "end_utc": "2026-10-27T02:43:12.788713+00:00"
+    },
+    "reducer-checks-final-command": {
+      "argv": [
+        "python3",
+        "scripts/test-response-owner-measure.py"
+      ],
+      "cwd": "/home/ashutosh/.t3/worktrees/inngest/t3-0e6fce65",
+      "environment": {
+        "GOTOOLCHAIN": "local",
+        "GOMAXPROCS": "2",
+        "GOTMPDIR": "/home/ashutosh/.cache/response-owner-diagnostic-20261027-dvs1uhhh/tmp",
+        "TMPDIR": "/home/ashutosh/.cache/response-owner-diagnostic-20261027-dvs1uhhh/tmp",
+        "CGO_ENABLED": null,
+        "GOFLAGS": null,
+        "CGO_CFLAGS": null,
+        "CGO_LDFLAGS": null,
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "GOMEMLIMIT": null,
+        "GOGC": null,
+        "GODEBUG": null,
+        "RESPONSE_MEASURE_VALKEY_ADDR": null
+      },
+      "start_utc": "2026-10-27T02:40:02.347487+00:00",
+      "exit": 0,
+      "elapsed_seconds": 3.0796571373939514,
+      "end_utc": "2026-10-27T02:40:05.427363+00:00"
+    }
+  },
+  "state": {
+    "phase1": "partial",
+    "phase2": "open",
+    "bridge": "unset",
+    "full_campaign_authorized": false,
+    "remaining_replays": 0
+  },
+  "original_added_paths": [],
+  "added_source_paths_after_capture": [
+    ".agents/tasks/2026-10-26/01-rust-core-migration/references/response-owner-diagnostic-2026-10-27.json"
+  ],
+  "removed_source_paths_after_capture": [],
+  "unexpected_code_changes_after_capture": [],
+  "owner_request_body_unchanged": true,
+  "rss_eligibility_and_cell_thresholds_unchanged": true,
+  "native_archive_current_sha256": "562139fab7fec3ed44cdcb596276c1241d038ed95c0d34a165fa7d6d0f28ed7d",
+  "delivery_formatting_followup": {
+    "tool": "Black via uvx",
+    "paths": {
+      "scripts/response-owner-measure.py": {
+        "captured_sha256": "9b97b6deeeca76b6b73e00eadd8fc5368fd5d0a7fc3e1a0ec32c1008d676f821",
+        "current_sha256": "1e827462b0882bb5d65a94301710b6f4d45be6137d98432dd09bc2a7a57df69f"
+      },
+      "scripts/test-response-owner-measure.py": {
+        "captured_sha256": "891ac294c4c8cbcd193e4fc66f56a6cd1a31a4107875838cf907d34a0b155dcd",
+        "current_sha256": "3d64fb24f6aeb0bd359183a5cda00cb34c996ce4079b53c09cf4c9e7d1d7ef71"
+      }
+    },
+    "python_ast_unchanged": true,
+    "measurement_replayed": false
+  }
+}

@@ -1,0 +1,619 @@
+{
+  "status": "STOPPED_INVALID_INCOMPLETE_CAPTURE",
+  "performance_gates": "NOT_DERIVED",
+  "review_status": "PENDING_INDEPENDENT_SOL_REVIEW",
+  "migration_status": {
+    "phase1": "partial",
+    "phase2": "open_pending_independent_review",
+    "bridge": "unset"
+  },
+  "gate_policy": {
+    "calibration": "UNCALIBRATED",
+    "resource_p95_ratio_max": 1.1,
+    "closed_loop_achieved_throughput_ratio_min": 0.9,
+    "owner_service_rate_ratio_min": 0.9,
+    "sampled_peak_host_rss_ratio_max": 1.2,
+    "per_cell_rule": "median pass and at least 2 of 3 seed blocks pass for every metric in every cell",
+    "derived": false
+  },
+  "reason": "The first steady row exceeded the internal 110-second watchdog and ended with one started native request stuck; the harness stopped by design.",
+  "selection": {
+    "children": 480,
+    "steady_rows": 180,
+    "steady_requests": 360000,
+    "first_observations": 300,
+    "seeds": [
+      26011,
+      26012,
+      26013
+    ],
+    "profiles": [
+      "controlled",
+      "real-valkey-off",
+      "real-valkey-on"
+    ],
+    "lanes": [
+      "go",
+      "native"
+    ],
+    "workloads": [
+      "enqueue-error",
+      "mixed8",
+      "retryable",
+      "run64",
+      "run64k"
+    ],
+    "concurrency": [
+      1,
+      8
+    ]
+  },
+  "functional_preflight": {
+    "status": "PASS",
+    "exit_error": "<nil>"
+  },
+  "environment": {
+    "captured_utc": "2026-10-27T02:10:09.824740+00:00",
+    "logical_cpus": 32,
+    "process_cpu_affinity": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      30,
+      31
+    ],
+    "cpuset_cpus_effective": "0-31",
+    "loadavg_before_capture": "14.12 6.56 6.13 3/10608 1071438",
+    "memory_available_bytes_before_capture": 36140412928,
+    "load_before_first_row": "5.99 5.67 5.85 2/10410 1077487",
+    "cpu_availability_first_row": "Cpus_allowed_list:\t0-31",
+    "valkey_version": "8.0.3",
+    "valkey_image_id": "sha256:88251207ac13df6d4bd4d3a77e6953ca3b90e0e5cc6acb6b3ece0fc2f9091289",
+    "valkey_image_repo_digest": "[\"valkey/valkey@sha256:4e78d8ccab4d8978afca140a3dd75b4e45d683d1e51602ee71e976bcc2bd939e\"]",
+    "valkey_startup_used_memory_bytes": 954720,
+    "valkey_preflight_end_used_memory_bytes": {
+      "real-valkey-on": {
+        "count": 10,
+        "min_bytes": 1866512,
+        "median_bytes": 1900868.0,
+        "max_bytes": 2380792
+      },
+      "real-valkey-off": {
+        "count": 10,
+        "min_bytes": 1859552,
+        "median_bytes": 2117320.0,
+        "max_bytes": 2369320
+      }
+    }
+  },
+  "port_preflight": {
+    "expected": 30,
+    "completed": 30,
+    "passed": 30,
+    "keys": 30,
+    "real_valkey_ping_ns": {
+      "real-valkey-on": {
+        "count": 10,
+        "min_ns": 72306,
+        "median_ns": 77090.0,
+        "max_ns": 116498
+      },
+      "real-valkey-off": {
+        "count": 10,
+        "min_ns": 59852,
+        "median_ns": 75021.0,
+        "max_ns": 104025
+      }
+    }
+  },
+  "first_steady_row": {
+    "selection": {
+      "preflight": false,
+      "seed": 26011,
+      "lane": "native",
+      "profile": "controlled",
+      "workload": "run64k",
+      "concurrency": 1,
+      "count": 5000,
+      "warmups_per_slot": 32,
+      "first_only": false,
+      "first_pair": 0,
+      "order": 0
+    },
+    "planned_samples": 5033,
+    "complete_samples": 3419,
+    "started_samples": 3420,
+    "timed_out_samples": 1,
+    "stuck_sample_ids": [
+      3419
+    ],
+    "phase_counts": {
+      "first": {
+        "started": 1,
+        "complete": 1
+      },
+      "warmup": {
+        "started": 32,
+        "complete": 32
+      },
+      "steady": {
+        "started": 3387,
+        "complete": 3386
+      }
+    },
+    "lifecycle_stages": [
+      "baseline",
+      "ready"
+    ],
+    "input_retention": {
+      "prepared": 0,
+      "validated": 0,
+      "released": 0,
+      "remaining": 0,
+      "peak_inputs": 0,
+      "peak_payload_capacity_bytes": 0,
+      "precreated_backend_runs": 0
+    }
+  },
+  "source_binary_archive": {
+    "source_changed": [],
+    "binary_changed": false,
+    "native_changed": false,
+    "binary_sha256": "4124474f485d544e3a4cd9e11350009770387832628b80cdcd9dcfd78c0ae678",
+    "native_static_sha256": "562139fab7fec3ed44cdcb596276c1241d038ed95c0d34a165fa7d6d0f28ed7d",
+    "source_archive_sha256": "12baba13bf8ba4b8735c59b3a1b119c54d5bbf437e1628002ef6eadac5986dcd",
+    "reducer_sha256": "118ce309cf80dd5f4fab202d719a003466db3a01af1d4c926cad3db64ca71310",
+    "reducer_test_sha256": "108897adae6ee0aec3103f3d3b2d105edc4b56fde8ebe6c494661372310297ef"
+  },
+  "raw_artifacts": {
+    "count": 101,
+    "hash_mismatches": [],
+    "campaign_dir": "/home/ashutosh/.cache/response-owner-review-20261027-jSVKc2/campaign"
+  },
+  "preflight_rows": [
+    {
+      "row": "port-preflight-000.json",
+      "lane": "native",
+      "profile": "controlled",
+      "workload": "run64k",
+      "ping_ns": 0,
+      "valkey_used_memory_end_bytes": null,
+      "load_before": "6.07 5.68 5.86 4/10623 1076418",
+      "load_after": "6.07 5.68 5.86 4/10623 1076418",
+      "cpu_availability": "Cpus_allowed_list:\t0-31",
+      "result_class": "ok",
+      "callback_count": 1
+    },
+    {
+      "row": "port-preflight-001.json",
+      "lane": "go",
+      "profile": "controlled",
+      "workload": "run64k",
+      "ping_ns": 0,
+      "valkey_used_memory_end_bytes": null,
+      "load_before": "6.07 5.68 5.86 4/10619 1076484",
+      "load_after": "6.07 5.68 5.86 4/10619 1076484",
+      "cpu_availability": "Cpus_allowed_list:\t0-31",
+      "result_class": "ok",
+      "callback_count": 1
+    },
+    {
+      "row": "port-preflight-002.json",
+      "lane": "native",
+      "profile": "controlled",
+      "workload": "run64",
+      "ping_ns": 0,
+      "valkey_used_memory_end_bytes": null,
+      "load_before": "6.07 5.68 5.86 4/10621 1076534",
+      "load_after": "6.07 5.68 5.86 4/10621 1076534",
+      "cpu_availability": "Cpus_allowed_list:\t0-31",
+      "result_class": "ok",
+      "callback_count": 1
+    },
+    {
+      "row": "port-preflight-003.json",
+      "lane": "go",
+      "profile": "controlled",
+      "workload": "run64",
+      "ping_ns": 0,
+      "valkey_used_memory_end_bytes": null,
+      "load_before": "6.07 5.68 5.86 13/10637 1076567",
+      "load_after": "6.07 5.68 5.86 7/10637 1076567",
+      "cpu_availability": "Cpus_allowed_list:\t0-31",
+      "result_class": "ok",
+      "callback_count": 1
+    },
+    {
+      "row": "port-preflight-004.json",
+      "lane": "go",
+      "profile": "real-valkey-on",
+      "workload": "mixed8",
+      "ping_ns": 72486,
+      "valkey_used_memory_end_bytes": 1868696,
+      "load_before": "6.07 5.68 5.86 5/10628 1076608",
+      "load_after": "6.07 5.68 5.86 4/10628 1076608",
+      "cpu_availability": "Cpus_allowed_list:\t0-31",
+      "result_class": "ok",
+      "callback_count": 6
+    },
+    {
+      "row": "port-preflight-005.json",
+      "lane": "native",
+      "profile": "real-valkey-on",
+      "workload": "mixed8",
+      "ping_ns": 116498,
+      "valkey_used_memory_end_bytes": 1895504,
+      "load_before": "6.07 5.68 5.86 5/10628 1076622",
+      "load_after": "6.07 5.68 5.86 6/10628 1076622",
+      "cpu_availability": "Cpus_allowed_list:\t0-31",
+      "result_class": "ok",
+      "callback_count": 6
+    },
+    {
+      "row": "port-preflight-006.json",
+      "lane": "native",
+      "profile": "real-valkey-off",
+      "workload": "retryable",
+      "ping_ns": 83126,
+      "valkey_used_memory_end_bytes": 1859552,
+      "load_before": "6.07 5.68 5.86 6/10628 1076635",
+      "load_after": "6.07 5.68 5.86 6/10628 1076635",
+      "cpu_availability": "Cpus_allowed_list:\t0-31",
+      "result_class": "retryable_step_error",
+      "callback_count": 1
+    },
+    {
+      "row": "port-preflight-007.json",
+      "lane": "go",
+      "profile": "real-valkey-off",
+      "workload": "retryable",
+      "ping_ns": 83707,
+      "valkey_used_memory_end_bytes": 1900136,
+      "load_before": "6.07 5.68 5.86 4/10628 1076666",
+      "load_after": "6.07 5.68 5.86 7/10628 1076666",
+      "cpu_availability": "Cpus_allowed_list:\t0-31",
+      "result_class": "retryable_step_error",
+      "callback_count": 1
+    },
+    {
+      "row": "port-preflight-008.json",
+      "lane": "native",
+      "profile": "real-valkey-on",
+      "workload": "retryable",
+      "ping_ns": 74099,
+      "valkey_used_memory_end_bytes": 1902472,
+      "load_before": "6.07 5.68 5.86 4/10627 1076679",
+      "load_after": "6.07 5.68 5.86 4/10627 1076679",
+      "cpu_availability": "Cpus_allowed_list:\t0-31",
+      "result_class": "retryable_step_error",
+      "callback_count": 1
+    },
+    {
+      "row": "port-preflight-009.json",
+      "lane": "go",
+      "profile": "real-valkey-on",
+      "workload": "retryable",
+      "ping_ns": 79379,
+      "valkey_used_memory_end_bytes": 1866512,
+      "load_before": "6.07 5.68 5.86 11/10620 1076692",
+      "load_after": "6.07 5.68 5.86 7/10620 1076692",
+      "cpu_availability": "Cpus_allowed_list:\t0-31",
+      "result_class": "retryable_step_error",
+      "callback_count": 1
+    },
+    {
+      "row": "port-preflight-010.json",
+      "lane": "go",
+      "profile": "real-valkey-on",
+      "workload": "run64",
+      "ping_ns": 78608,
+      "valkey_used_memory_end_bytes": 1874576,
+      "load_before": "6.07 5.68 5.86 11/10620 1076705",
+      "load_after": "6.07 5.68 5.86 5/10620 1076705",
+      "cpu_availability": "Cpus_allowed_list:\t0-31",
+      "result_class": "ok",
+      "callback_count": 1
+    },
+    {
+      "row": "port-preflight-011.json",
+      "lane": "native",
+      "profile": "real-valkey-on",
+      "workload": "run64",
+      "ping_ns": 81553,
+      "valkey_used_memory_end_bytes": 1959648,
+      "load_before": "6.07 5.68 5.86 7/10620 1076718",
+      "load_after": "6.07 5.68 5.86 7/10620 1076718",
+      "cpu_availability": "Cpus_allowed_list:\t0-31",
+      "result_class": "ok",
+      "callback_count": 1
+    },
+    {
+      "row": "port-preflight-012.json",
+      "lane": "go",
+      "profile": "controlled",
+      "workload": "retryable",
+      "ping_ns": 0,
+      "valkey_used_memory_end_bytes": null,
+      "load_before": "6.07 5.68 5.86 3/10620 1076747",
+      "load_after": "6.07 5.68 5.86 6/10620 1076747",
+      "cpu_availability": "Cpus_allowed_list:\t0-31",
+      "result_class": "retryable_step_error",
+      "callback_count": 1
+    },
+    {
+      "row": "port-preflight-013.json",
+      "lane": "native",
+      "profile": "controlled",
+      "workload": "retryable",
+      "ping_ns": 0,
+      "valkey_used_memory_end_bytes": null,
+      "load_before": "6.07 5.68 5.86 6/10620 1076760",
+      "load_after": "6.07 5.68 5.86 4/10613 1076760",
+      "cpu_availability": "Cpus_allowed_list:\t0-31",
+      "result_class": "retryable_step_error",
+      "callback_count": 1
+    },
+    {
+      "row": "port-preflight-014.json",
+      "lane": "native",
+      "profile": "real-valkey-on",
+      "workload": "enqueue-error",
+      "ping_ns": 73468,
+      "valkey_used_memory_end_bytes": 1929496,
+      "load_before": "6.07 5.68 5.86 7/10617 1076777",
+      "load_after": "6.07 5.68 5.86 5/10617 1076777",
+      "cpu_availability": "Cpus_allowed_list:\t0-31",
+      "result_class": "enqueue_commit_error",
+      "callback_count": 0
+    },
+    {
+      "row": "port-preflight-015.json",
+      "lane": "go",
+      "profile": "real-valkey-on",
+      "workload": "enqueue-error",
+      "ping_ns": 102462,
+      "valkey_used_memory_end_bytes": 1899264,
+      "load_before": "6.07 5.68 5.86 5/10614 1076797",
+      "load_after": "6.07 5.68 5.86 5/10613 1076797",
+      "cpu_availability": "Cpus_allowed_list:\t0-31",
+      "result_class": "enqueue_commit_error",
+      "callback_count": 0
+    },
+    {
+      "row": "port-preflight-016.json",
+      "lane": "native",
+      "profile": "controlled",
+      "workload": "enqueue-error",
+      "ping_ns": 0,
+      "valkey_used_memory_end_bytes": null,
+      "load_before": "6.07 5.68 5.86 4/10613 1076811",
+      "load_after": "6.07 5.68 5.86 4/10613 1076811",
+      "cpu_availability": "Cpus_allowed_list:\t0-31",
+      "result_class": "enqueue_commit_error",
+      "callback_count": 0
+    },
+    {
+      "row": "port-preflight-017.json",
+      "lane": "go",
+      "profile": "controlled",
+      "workload": "enqueue-error",
+      "ping_ns": 0,
+      "valkey_used_memory_end_bytes": null,
+      "load_before": "6.07 5.68 5.86 4/10611 1076824",
+      "load_after": "6.07 5.68 5.86 6/10611 1076824",
+      "cpu_availability": "Cpus_allowed_list:\t0-31",
+      "result_class": "enqueue_commit_error",
+      "callback_count": 0
+    },
+    {
+      "row": "port-preflight-018.json",
+      "lane": "go",
+      "profile": "controlled",
+      "workload": "mixed8",
+      "ping_ns": 0,
+      "valkey_used_memory_end_bytes": null,
+      "load_before": "6.07 5.68 5.86 5/10608 1076910",
+      "load_after": "6.07 5.68 5.86 4/10608 1076910",
+      "cpu_availability": "Cpus_allowed_list:\t0-31",
+      "result_class": "ok",
+      "callback_count": 6
+    },
+    {
+      "row": "port-preflight-019.json",
+      "lane": "native",
+      "profile": "controlled",
+      "workload": "mixed8",
+      "ping_ns": 0,
+      "valkey_used_memory_end_bytes": null,
+      "load_before": "6.07 5.68 5.86 7/10617 1076953",
+      "load_after": "6.07 5.68 5.86 7/10617 1076953",
+      "cpu_availability": "Cpus_allowed_list:\t0-31",
+      "result_class": "ok",
+      "callback_count": 6
+    },
+    {
+      "row": "port-preflight-020.json",
+      "lane": "go",
+      "profile": "real-valkey-off",
+      "workload": "mixed8",
+      "ping_ns": 104025,
+      "valkey_used_memory_end_bytes": 1944232,
+      "load_before": "6.07 5.68 5.86 7/10605 1077041",
+      "load_after": "6.07 5.68 5.86 11/10608 1077063",
+      "cpu_availability": "Cpus_allowed_list:\t0-31",
+      "result_class": "ok",
+      "callback_count": 6
+    },
+    {
+      "row": "port-preflight-021.json",
+      "lane": "native",
+      "profile": "real-valkey-off",
+      "workload": "mixed8",
+      "ping_ns": 59852,
+      "valkey_used_memory_end_bytes": 1991256,
+      "load_before": "6.07 5.68 5.86 10/10602 1077159",
+      "load_after": "6.07 5.68 5.86 13/10602 1077159",
+      "cpu_availability": "Cpus_allowed_list:\t0-31",
+      "result_class": "ok",
+      "callback_count": 6
+    },
+    {
+      "row": "port-preflight-022.json",
+      "lane": "go",
+      "profile": "real-valkey-off",
+      "workload": "run64k",
+      "ping_ns": 97834,
+      "valkey_used_memory_end_bytes": 2101200,
+      "load_before": "6.07 5.68 5.86 8/10609 1077179",
+      "load_after": "6.07 5.68 5.86 5/10609 1077179",
+      "cpu_availability": "Cpus_allowed_list:\t0-31",
+      "result_class": "ok",
+      "callback_count": 1
+    },
+    {
+      "row": "port-preflight-023.json",
+      "lane": "native",
+      "profile": "real-valkey-off",
+      "workload": "run64k",
+      "ping_ns": 73518,
+      "valkey_used_memory_end_bytes": 2227248,
+      "load_before": "5.99 5.67 5.85 5/10585 1077199",
+      "load_after": "5.99 5.67 5.85 6/10505 1077199",
+      "cpu_availability": "Cpus_allowed_list:\t0-31",
+      "result_class": "ok",
+      "callback_count": 1
+    },
+    {
+      "row": "port-preflight-024.json",
+      "lane": "native",
+      "profile": "real-valkey-off",
+      "workload": "enqueue-error",
+      "ping_ns": 65624,
+      "valkey_used_memory_end_bytes": 2133440,
+      "load_before": "5.99 5.67 5.85 6/10472 1077234",
+      "load_after": "5.99 5.67 5.85 8/10486 1077251",
+      "cpu_availability": "Cpus_allowed_list:\t0-31",
+      "result_class": "enqueue_commit_error",
+      "callback_count": 0
+    },
+    {
+      "row": "port-preflight-025.json",
+      "lane": "go",
+      "profile": "real-valkey-off",
+      "workload": "enqueue-error",
+      "ping_ns": 68909,
+      "valkey_used_memory_end_bytes": 2139280,
+      "load_before": "5.99 5.67 5.85 5/10472 1077342",
+      "load_after": "5.99 5.67 5.85 4/10472 1077342",
+      "cpu_availability": "Cpus_allowed_list:\t0-31",
+      "result_class": "enqueue_commit_error",
+      "callback_count": 0
+    },
+    {
+      "row": "port-preflight-026.json",
+      "lane": "native",
+      "profile": "real-valkey-on",
+      "workload": "run64k",
+      "ping_ns": 72306,
+      "valkey_used_memory_end_bytes": 2290800,
+      "load_before": "5.99 5.67 5.85 4/10479 1077365",
+      "load_after": "5.99 5.67 5.85 4/10479 1077365",
+      "cpu_availability": "Cpus_allowed_list:\t0-31",
+      "result_class": "ok",
+      "callback_count": 1
+    },
+    {
+      "row": "port-preflight-027.json",
+      "lane": "go",
+      "profile": "real-valkey-on",
+      "workload": "run64k",
+      "ping_ns": 75572,
+      "valkey_used_memory_end_bytes": 2380792,
+      "load_before": "5.99 5.67 5.85 8/10411 1077409",
+      "load_after": "5.99 5.67 5.85 8/10423 1077426",
+      "cpu_availability": "Cpus_allowed_list:\t0-31",
+      "result_class": "ok",
+      "callback_count": 1
+    },
+    {
+      "row": "port-preflight-028.json",
+      "lane": "native",
+      "profile": "real-valkey-off",
+      "workload": "run64",
+      "ping_ns": 67126,
+      "valkey_used_memory_end_bytes": 2363480,
+      "load_before": "5.99 5.67 5.85 5/10409 1077460",
+      "load_after": "5.99 5.67 5.85 4/10409 1077460",
+      "cpu_availability": "Cpus_allowed_list:\t0-31",
+      "result_class": "ok",
+      "callback_count": 1
+    },
+    {
+      "row": "port-preflight-029.json",
+      "lane": "go",
+      "profile": "real-valkey-off",
+      "workload": "run64",
+      "ping_ns": 76524,
+      "valkey_used_memory_end_bytes": 2369320,
+      "load_before": "5.99 5.67 5.85 6/10409 1077473",
+      "load_after": "5.99 5.67 5.85 3/10409 1077473",
+      "cpu_availability": "Cpus_allowed_list:\t0-31",
+      "result_class": "ok",
+      "callback_count": 1
+    }
+  ],
+  "audit_errors": [],
+  "post_capture_source_verification": {
+    "captured_source_manifest_sha256": "9e07c9ec49e74ad75a95588ebe96c0a894dde54955d8e9a35d09ba427af66b5c",
+    "code_files_compared": 9948,
+    "new_code_files": [],
+    "changed_code_files": [],
+    "removed_code_files": [],
+    "post_capture_task_document_changes": [
+      ".agents/tasks/2026-10-26/01-rust-core-migration/plan.md",
+      ".agents/tasks/2026-10-26/01-rust-core-migration/references/response-owner-measurement-campaign-2026-10-27.json",
+      ".agents/tasks/2026-10-26/01-rust-core-migration/references/response-owner-measurement-campaign-2026-10-27.md",
+      ".agents/tasks/2026-10-26/01-rust-core-migration/references/response-owner-measurement.md",
+      ".agents/tasks/2026-10-26/01-rust-core-migration/status.md"
+    ],
+    "binary_sha256": "4124474f485d544e3a4cd9e11350009770387832628b80cdcd9dcfd78c0ae678",
+    "native_static_sha256": "562139fab7fec3ed44cdcb596276c1241d038ed95c0d34a165fa7d6d0f28ed7d",
+    "reducer_sha256": "118ce309cf80dd5f4fab202d719a003466db3a01af1d4c926cad3db64ca71310",
+    "reducer_test_sha256": "108897adae6ee0aec3103f3d3b2d105edc4b56fde8ebe6c494661372310297ef",
+    "status": "PASS"
+  },
+  "raw_bundle_manifest": {
+    "path": "/home/ashutosh/.cache/response-owner-review-20261027-jSVKc2/bundle-manifest.json",
+    "file_count": 117,
+    "sha256": "d96c3044c0131766203d887ade3799712d2cb003a19f3d66007f3bb49204ae08",
+    "mismatches": []
+  },
+  "independent_review_status": "PENDING_INDEPENDENT_SOL_REVIEW"
+}
