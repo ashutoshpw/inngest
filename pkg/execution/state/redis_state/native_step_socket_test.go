@@ -176,7 +176,7 @@ func (p *nativeRelay) serve(c net.Conn) {
 		p.mu.Lock()
 		index := len(p.commands)
 		command := nativeWireCommand{name: name, at: time.Now()}
-		if script {
+		if script || name == "HGET" {
 			for _, v := range f.items[1:] {
 				command.args = append(command.args, bytes.Clone(v.value))
 			}
@@ -220,9 +220,18 @@ func (p *nativeRelay) serve(c net.Conn) {
 				p.commands[index].result = append(p.commands[index].result, n)
 			}
 		}
+		if script && reply.raw[0] == ':' {
+			n, e := strconv.ParseInt(string(reply.value), 10, 64)
+			if e != nil {
+				p.errs = append(p.errs, e)
+			}
+			p.commands[index].result = []int64{n}
+		}
 		p.mu.Unlock()
 		if fault && p.mode == "after" {
-			if len(reply.items) == 0 || (string(reply.items[0].value) != "0" && string(reply.items[0].value) != "1") {
+			arrayCommit := len(reply.items) > 0 && (string(reply.items[0].value) == "0" || string(reply.items[0].value) == "1")
+			scalarCommit := reply.raw[0] == ':' && string(reply.value) == "0"
+			if !arrayCommit && !scalarCommit {
 				p.fail(fmt.Errorf("fault must follow an actual fresh commit"))
 				return
 			}

@@ -273,7 +273,12 @@ pub(crate) fn response(raw: &[u8]) -> Result<(String, Option<&[u8]>), Preparatio
             "opts" if compact(value)? == b"{}" || value == b"null" => {}
             "metadata" if compact(value)? == b"[]" || value == b"null" => {}
             "error" | "displayName" | "userland" if value == b"null" => {}
-            "name" if value == b"\"\"" => {}
+            // Ordinary SDK StepRun responses carry a name. It does not affect
+            // output bytes or discovery identity; lifecycle remains Go-owned.
+            "name" => {
+                serde_json::from_slice::<String>(value)
+                    .map_err(|_| PreparationError::Ineligible)?;
+            }
             _ => return Err(PreparationError::Ineligible),
         }
         i = skip(raw, j);

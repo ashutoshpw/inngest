@@ -1,12 +1,19 @@
-//! Internal, synchronous native-owner experiment. No discovery, worker, Go
-//! callbacks or production selector. See the task's native-save reference.
+//! Internal, synchronous native-owner experiment. No worker, Go callbacks or
+//! production selector. See the task's native-save and native-enqueue references.
+mod enqueue;
 mod json;
 mod runtime;
-pub use runtime::{CallContext, ErrorClass, Runtime, SaveOutcome, StoreConfig, WriteStatus};
+pub use enqueue::{DiscoveryConfig, EnqueueRequest, QueueConfig, QueueMode};
+pub use runtime::{
+    CallContext, EnqueueClass, EnqueueOutcome, ErrorClass, Runtime, SaveOutcome, StoreConfig,
+    WriteStatus,
+};
 use serde::{Deserialize, Serialize};
 
 pub const SAVE_SHA1: &str = "2c371556f31bb03e150253bbd588a9a34255061a";
 pub const SAVE_LUA: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/saveResponse.lua"));
+pub const ENQUEUE_SHA1: &str = "3868a424cbc217eed464dfef3f1618d64794c103";
+pub const ENQUEUE_LUA: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/enqueue.lua"));
 pub const MAX_STEP_OUTPUT: usize = 4 * 1024 * 1024;
 pub const DEFAULT_MAX_STATE: usize = 32 * 1024 * 1024;
 
