@@ -1,5 +1,37 @@
 # Matched response-owner measurement harness
 
+## Resource contract amendment — 2026-10-27
+
+Parent explicitly accepts the resource-contract amendment after the pilot04
+audit. The [current resource contract](response-owner-resource-contract.md)
+supersedes earlier conflicting resource/activation wording prospectively only.
+Verified separate Valkey FD enumeration is optional diagnostic evidence;
+required owner resources, authenticated INFO memory and verified owned-store
+identity remain strict. Unknown descendants stop without owner attribution.
+Pilot04 remains a valid old-contract failure and EXHAUSTED; no new grant,
+retry, capture, privilege or policy change. The bounded resource-contract and
+control reviews are accepted at their declared scopes; the pilot05 audit keeps
+short-lifetime sampling, store teardown, publication/reaping, and traversal
+findings open. Earlier sections, including
+former “current” states, null-registry/build/no-Go-change statements and
+store-FD-denial rules, describe their original historical snapshots.
+
+**Current readiness handoff:** the [readiness reconciliation](response-owner-oneshot-readiness.md#current-scoped-review-handoff)
+records accepted scoped native semantics, comparator, Go artifact, controls,
+and resource-contract reviews. The pilot05 evidence audit is accepted, but the
+capability, memory, publisher transition, and performance verdicts remain
+incomplete. Prior unchanged-owner claims apply only to their original prefix.
+
+
+**One-shot amendment, 2026-10-27:** the [bounded semantic correction](response-owner-clock-correction.md)
+separates native enqueue clocks and moves comparator accounting before cold
+bootstrap. The old single-clock acceptance was a reduced-domain acceptance,
+not actual-Go clock parity. Scoped semantics and control reviews are now
+accepted; one-shot capture remains blocked by the open capability/resource
+findings and spent grant.
+No historical measurement is recomputed or relabelled by this correction.
+
+
 Updated 2026-10-27. Parent accepted the matched harness and the limited one-row diagnostic evidence after the matched-port/timing/raw-reproduction, bounded-input-retention, service-rate, RSS-boundary, strict-enclosure and final diagnostic reviews. This accepts harness and diagnostic integrity only; the measurement decision remains pending, with no performance verdict or additional campaign authorization.
 
 The next bounded design is the [fixed 18-row rejection screen](response-owner-screen.md).
