@@ -65,7 +65,7 @@ complete native response owner. Existing migration gates remain open.
 - [x] Finish focused normal/race checks and record source/log hashes.
 - [x] Repair review01 source-preference coverage and narrow snapshot claims; retain 139 baseline checks and four controls, add four distinct-response cases and four controls.
 - [x] Independent Luna review02 found no blockers; parent accepted the narrowed test-only contract. Author and independent 144-record normal/race runs are reported separately; Luna inspected eight existing mutation logs without rerunning them.
-- [ ] Commit the accepted tests and evidence, push the stacked branch, and open a PR against PR19 with the repository's required sections.
+- [x] Commit and push the accepted tests/evidence; open [PR #20](https://github.com/ashutoshpw/inngest/pull/20) against PR19's `t3/native-prepare-memory-bound` branch using the required Description, Release note, and Migration note sections. Link PR19 and PR20 to the delivery thread.
 
 This is prospective test evidence only; it does not claim a complete Go owner,
 production selector, native adapter, full source coverage or ownership transfer.

@@ -374,3 +374,16 @@ projection description are the accepted bounded repairs. Author/reviewer
 records and mutation logs are local evidence under
 `/home/ashutosh/.cache/step-run-input-binding/repair01/`; mutation cases were not
 rerun for review02.
+
+## Delivery
+
+Delivered in [PR #20](https://github.com/ashutoshpw/inngest/pull/20), branch
+`t3/test-step-run-input-binding`, targeting PR19's
+`t3/native-prepare-memory-bound` branch from base/head
+`4a870dd35e2494c0b3b0f95b97a24ed3021bd674`. The implementation/evidence commit
+is `5f081a5b530915bf868fbabe44ff3c96d96b2da6`. PR #20 opened non-draft and
+`CLEAN`, with no review decision or check runs reported at opening. PR #19 and
+PR #20 are linked to delivery thread
+`c37dccc0-74a6-4b56-bc19-0ffcf321cc19`. PR text uses `Description`, `Release
+note: None`, and `Migration note: None`. The delivery-metadata follow-up
+advances the PR head. No merge, watch, polling or force push.
