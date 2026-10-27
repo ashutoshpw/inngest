@@ -1,6 +1,6 @@
 # Native-step fresh Go runtime replay
 
-**State:** parent-accepted Go-only baseline after independent Luna review found no blockers. This does not implement or qualify a native adapter. Delivery metadata will be recorded after PR creation.
+**State:** parent-accepted Go-only baseline after independent Luna review found no blockers. [PR #16](https://github.com/ashutoshpw/inngest/pull/16) is open as a stacked Go-only layer. This does not implement or qualify a native adapter.
 
 **Base and binding:** clean pre-existing isolated T3 worktree
 `/home/ashutosh/.t3/worktrees/inngest/t3-d7790020`, branch
@@ -219,10 +219,20 @@ Fixture SHA-256: `native-boundary.json` =
 `native-checkpoint.http` = `9ea611de08200961f0407b2aacabeb6bd9fc360133c204d908ccd3adca43de65`;
 `native-terminal.http` = `d65f3eae9a7d2d1fe68e75c838b9405e457397346956813c9c0a1adc4b55b011`.
 
-## Review and delivery
+## Delivery metadata
+
+[PR #16](https://github.com/ashutoshpw/inngest/pull/16),
+`test(executor): verify fresh-owner native step replay`, targets
+`t3/native-step-persistence-baseline` (PR #15). It opened at
+`86a4bb1ad8e02859d1215a8a7a87b878e76f4d80`, directly based on
+`6dcd3b71fa4ba5dcaa98c1562c5f072ecc30d6ee`. The opening snapshot was open,
+non-draft, merge state clean, with no review decision or check runs. T3 linked
+PR #16 to this child thread and parent thread
+`c37dccc0-74a6-4b56-bc19-0ffcf321cc19`. The metadata follow-up advances the PR
+head; the next isolated Rust adapter will use PR #16's final head as its base.
+No merge, watch, force push, or polling was performed.
 
 Independent Luna review found no blockers and the parent accepted this bounded
-Go-only baseline. It is ready as the next stack layer after PR #15, targeting
-`t3/native-step-persistence-baseline`. No production Go/Lua/Rust or module file
-changed. Actual native adapter/runtime tests, release qualification, broader
-recovery and the stated license gate remain open.
+Go-only baseline. No production Go/Lua/Rust or module file changed. Actual native
+adapter/runtime tests, release qualification, broader recovery and the stated
+license gate remain open.
