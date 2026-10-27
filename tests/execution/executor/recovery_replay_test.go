@@ -283,19 +283,20 @@ func newRecoveryRuntime(t *testing.T, ctx context.Context, valkey *queuehelper.V
 	return r
 }
 
-func (r *recoveryRuntime) makeExecutor(t *testing.T, ctx context.Context, q queue.Queue) {
+func (r *recoveryRuntime) makeExecutor(t *testing.T, ctx context.Context, q queue.Queue, extra ...executorpkg.ExecutorOpt) {
 	t.Helper()
 	// Config.NewDriver exercises MarshalV1, real HTTP, and ParseGenerator.
 	httpClient := &http.Client{Transport: http.DefaultTransport.(*http.Transport).Clone(), Timeout: 5 * time.Second}
 	r.closeHTTP = httpClient.CloseIdleConnections
 	driver, err := (httpdriver.Config{}).NewDriver(registration.NewDriverOpts{HTTPClient: exechttp.ExtendedClient{Client: httpClient}})
 	require.NoError(t, err)
-	r.exec, err = executorpkg.NewExecutor(
+	opts := []executorpkg.ExecutorOpt{
 		executorpkg.WithStateManager(r.state), executorpkg.WithPauseManager(r.pauses), executorpkg.WithQueue(q),
 		executorpkg.WithLogger(logger.StdlibLogger(ctx)), executorpkg.WithFunctionLoader(r.loader),
 		executorpkg.WithShardRegistry(r.registry), executorpkg.WithClock(r.clock), executorpkg.WithDriverV1(driver),
 		executorpkg.WithTracerProvider(tracing.NewSqlcTracerProvider(dbsqlite.New(r.db).Q())),
-	)
+	}
+	r.exec, err = executorpkg.NewExecutor(append(opts, extra...)...)
 	require.NoError(t, err)
 }
 
@@ -436,7 +437,7 @@ func recoveryTakeRequest(t *testing.T, requests <-chan recoveryHTTPRequest) reco
 	}
 }
 
-func recoveryAssertRequest(t *testing.T, fixture string, request recoveryHTTPRequest, originalJobID string) {
+func recoveryAssertRequest(t *testing.T, fixture string, request recoveryHTTPRequest, originalJobID string, stackCurrent ...int) {
 	t.Helper()
 	var body map[string]json.RawMessage
 	require.NoError(t, json.Unmarshal(request.Body, &body))
@@ -458,6 +459,20 @@ func recoveryAssertRequest(t *testing.T, fixture string, request recoveryHTTPReq
 	projection["ctx"] = contextProjection
 	data, err := json.Marshal(projection)
 	require.NoError(t, err)
+	if len(stackCurrent) > 0 {
+		// Native recovery's discovery and original-retry jobs have distinct cursors.
+		// The caller supplies the literal scenario recipe; all other expectations
+		// remain in the existing shared request fixture.
+		expected, err := os.ReadFile(filepath.Join(recoveryFixtureDir, fixture))
+		require.NoError(t, err)
+		var recipe map[string]any
+		require.NoError(t, json.Unmarshal(expected, &recipe))
+		recipe["ctx"].(map[string]any)["stack"].(map[string]any)["current"] = stackCurrent[0]
+		expected, err = json.Marshal(recipe)
+		require.NoError(t, err)
+		require.JSONEq(t, string(expected), string(data), fixture)
+		return
+	}
 	recoveryAssertJSON(t, fixture, data)
 }
 

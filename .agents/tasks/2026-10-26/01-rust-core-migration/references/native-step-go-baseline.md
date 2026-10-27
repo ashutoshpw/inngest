@@ -102,7 +102,7 @@ PR [#15](https://github.com/ashutoshpw/inngest/pull/15), `test(state): freeze na
 
 ## Remaining gates
 
-Fresh Go runtime replay is the next layer. SDK compatibility policy, broader recovery, process/lease/fencing/crash durability, native dependency qualification, arm64 execution, bridge choice, license reconciliation, and production activation remain open. All earlier accepted negative screen evidence remains intact. No benchmarks, Rust source/dependency changes, worker or production seam were added.
+Fresh Go runtime replay is accepted in the linked [native-step replay](native-step-replay.md). The separate preliminary Redis 1.8.0 compile/metadata recommendation does not close actual native adapter/runtime qualification. SDK compatibility policy, broader recovery, process/lease/fencing/crash durability, native arm64 execution, bridge choice, license reconciliation, and production activation remain open. All earlier accepted negative screen evidence remains intact. No benchmarks, Rust source/dependency changes, worker or production seam were added.
 
 
 ### Final-source delivery evidence
@@ -121,3 +121,15 @@ Expanded saveResponse: 1611 bytes, SHA-1 `2c371556f31bb03e150253bbd588a9a3425506
 Expanded queue/enqueue: 23635 bytes, SHA-1 `3868a424cbc217eed464dfef3f1618d64794c103`, SHA-256 `3e4d40b2c83b4a6e51127c1888a5cd3d452bd41afee9caca1d330af86c3837e0`.
 
 Final gofmt and whitespace checks pass. Only tests/fixtures/task documents differ from base; production Go, Lua, Rust, dependencies and original screen capture artifacts are unchanged. Git worktree ownership confirms branch `t3/native-step-persistence-baseline` at base `903288e1b18fcb8dcb99e9d64500ff0ba4b48256`, checked out at `/home/ashutosh/.t3/worktrees/inngest/t3-01bab1c9`.
+
+## Next bounded layer accepted
+
+The fresh Go-owner terminal replay implementation is documented separately in
+[native-step-replay.md](native-step-replay.md), with three scenarios added to the
+existing recovery owner. Independent Luna review found no blockers and the
+parent accepted the baseline; its eight focused normal/race validations pass.
+This implementation does not amend the P3 assertion limits or establish a
+native Redis adapter/runtime test. The separate preliminary Redis 1.8.0
+compile/metadata recommendation and its limits are recorded in the replay
+reference. This baseline's original acceptance and negative FFI evidence remain
+unchanged.

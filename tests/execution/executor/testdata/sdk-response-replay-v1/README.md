@@ -194,3 +194,100 @@ or broader lifecycle/queue persistence parity. SQLite persists function
 registration; Valkey retains execution state and queued work. The future sleep
 is inspected, not waited out. This is one reference witness for the migration,
 not completion of its recovery or SDK-response baseline.
+
+## Native-step terminal replay extension (2026-10-27)
+
+`TestRecoveryReplaysNativeStepBaseline` in
+[`recovery_native_step_test.go`](../../recovery_native_step_test.go) extends this
+same recovery owner at PR #15 head `6dcd3b71fa4ba5dcaa98c1562c5f072ecc30d6ee`.
+The original Sleep witness and its HTTP/request/state fixtures are unchanged.
+The new table uses the existing runtime constructors, real HTTP driver,
+request projection and checkpoint projection. Its two new HTTP fixtures return
+one ordinary non-AI StepRun and, after a valid literal saved result, HTTP 200
+with a terminal JSON result. They are synthetic SDK protocol examples, not
+captured executions or SDK-version conformance evidence. No second opcode is
+returned. The SDK header is required by the actual HTTP driver's SDK check;
+it does not add opcode SDK/AI/experiment metadata.
+
+`native-boundary.json` contains independently authored scenario/readout recipes:
+fixed literal identities, logical and hashed producer IDs, raw read keys,
+metadata fields, 41 saved bytes, 98 initial event-state bytes and 139 bytes after
+SaveStep, immediate score `1761440169984` milliseconds (the fixed run ULID's
+time), remaining jobs, replay job and stack cursor. No expected values are
+created using SaveStep, HashID, Score, a captured enqueue argument, or a runtime
+fixture-update mode. Hash known answers were computed at authoring using system
+`libxxhash` XXH64 seed 0 and unsigned lower base36: the schedule key hashes the
+function UUID **string** and supplied idempotency string separately, joining with
+`-`; the queue then hashes `functionUUID:schedule-key`, with
+`-checkpoint-output` appended for discovery. The output object has canonical key
+order so its exact bytes survive both SaveStep and outbound JCS serialization.
+This deliberately does not add a claim that arbitrary noncanonical JSON or
+large numbers survive JCS unchanged.
+
+- Normal: A saves and really enqueues discovery. Its worker dequeues the start
+  job normally. A's forwarding shard holds discovery admission before `Lease`;
+  it writes no lease or queue state. The persisted discovery remains unleased.
+- Discovery failure before commit: A saves output, observes it through a new
+  raw connection, and returns the original sentinel before calling Enqueue.
+  Execute returns its real AlwaysRetry classification. The worker durably
+  requeues the original job at 12:10 UTC, attempt 0, generation 2, no lease.
+- Committed ACK suppressed: A calls the real Enqueue exactly once, requires
+  success, and observes the actual committed discovery before suppressing its
+  response. A separately canceled PING supplies the real error while the
+  enqueue caller stays live. The actual AlwaysRetry owner leaves the same
+  original retry plus one unleased discovery; no successful store write is
+  fabricated. This is test-private reply suppression, not a network partition.
+
+A drains before its SQL handle, state/queue connections, HTTP idle connections,
+executor listeners and scanner are closed. Observation connections open and
+close per read. The SDK endpoint's external-effect connection belongs to the
+surviving endpoint. B opens entirely new owners and a fresh clock. Its loader
+reads SQLite without any upsert, and its normal queue scanner receives no
+captured/reconstructed item, explicit Execute call, manual enqueue, or requeue.
+For normal/ACK-loss, B advances one minute past A's short scanner/partition
+leases, staying before the original retry, so persisted discovery must drive
+replay. For precommit failure, B advances to the real retry time.
+
+Both actual HTTP dispatches identify the durable job. B must include the exact
+41 saved bytes, one stack entry, version 2 in body/header, fixed run/function/
+event identity, and a decoded queue reference matching job/shard. Generation
+and request IDs agree across HTTP body/headers; the latter is a valid ULID.
+The original retry uses cursor 0; discovery uses cursor 1. This single literal
+scenario field is substituted into the shared replay-request expectation;
+all other expected fields remain the original literal request fixture.
+
+SaveStep admission/result, pre-discovery, committed enqueue, drained A and
+pre-terminal B observations use independent cache-disabled raw readers. Before
+finalization deletes state, assertions check the action wrapper bytes, single
+stack entry, no pending work, request/identity metadata and accounting. The real
+HTTP path generates timing metadata: its SaveStep delta is captured and compared
+with raw `metadata_size`, which must survive owner replacement. HTTP timing
+values are not treated as fixed AI/SDK/experiment metadata. All raw metadata and
+item bytes remain in the test logs; this is not an exact whole-item byte fixture.
+
+Raw run/status indexes have exact job membership and millisecond scores.
+Legacy ready placement and key-queue ready/backlog placement are checked; start
+and discovery use distinct backlogs (`fn:UUID:start` and `fn:UUID`). A key queue
+may refill discovery to ready before drain, so the union must contain each
+remaining job exactly once. Live work has no seen tombstone. Normal dequeue and
+terminal cleanup leave genuine positive, bounded 12-hour producer-dedupe TTLs;
+a discovery that never committed leaves no discovery tombstone. Generated UUIDs
+must be v4 and bind enqueue context to stored group; propagation carrier schema,
+fixed deterministic trace/root and generated span relationships are checked.
+No raw value is discarded or normalized to make an unexpected field pass.
+
+The terminal response permits real finalization: fresh readers then require
+empty actions/metadata/stack/pending, no live queue items or run/status/ready/
+backlog entries, and external effect count exactly 1. This observes drained
+owner replacement against surviving authenticated AOF Valkey and persistent
+SQLite. It does not establish an OS crash, active-lease recovery, fencing,
+concurrent owners, exactly-once execution, atomic SaveStep+enqueue, Valkey
+restart/fsync/disk-loss durability, native adapter parity, or broader recovery.
+The earlier P3 Lua command-selection and whole-response-item-byte limitations
+remain unchanged. The accepted compile/metadata recommendation does not replace
+actual adapter/runtime tests or release qualification; current FFI expansion
+stays stopped.
+
+Exact validation, dependency provenance, retained failed local runs, accepted
+review and remaining gates are recorded in the linked
+[native-step replay reference](../../../../../.agents/tasks/2026-10-26/01-rust-core-migration/references/native-step-replay.md).
