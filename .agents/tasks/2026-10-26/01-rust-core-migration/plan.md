@@ -27,6 +27,8 @@ Migrate the Inngest execution core from Go to Rust in behavior-preserving stages
 
 Pilot05 remains **INCOMPLETE/EXHAUSTED**; memory is **INCONCLUSIVE**, cross-row publisher transitions are **NOT ESTABLISHED**, and no performance, production, steady-state, language, tail, or transport verdict is accepted. See the [consolidated pilot05 audit](references/response-owner-capability-pilot-05-audit.md). This handoff does not authorize a new grant or implementation. The older sections below preserve their source-time review snapshots; any older pending-review wording is historical.
 
+Delivery is open in [PR #22](https://github.com/ashutoshpw/inngest/pull/22), stacked on [PR #21](https://github.com/ashutoshpw/inngest/pull/21), with base `t3/native-response-owner`. T3 lists both layers in the linked stack. The PR opening snapshot at `e7adbb35dac64062e4de8aee84ae2611286ad41d` was open, non-draft, mergeable, with no review decision or check runs reported. No merge, watch, polling, or force push.
+
 ## Capability pilot 05 (2026-10-27; exhausted after one attempt)
 
 - [x] Read applicable protocol/authorization/resource contract; record scoped resourcecontractreview02 and all prior review acceptance.
